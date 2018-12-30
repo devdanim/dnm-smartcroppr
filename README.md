@@ -1,5 +1,3 @@
-![dnm-smartcroppr]
-
 ### Easy to use JS cropper based on dnm-croppr (fork of Croppr.js) with smartcrop features of smartcrop.js.
 
 dnm-smartcroppr is compatible with all options and methods of dnm-croppr.
@@ -58,7 +56,7 @@ There is only two additional options for now :
 
 #### **smartcrop**
 
-If false, smartcrop is deactivated. Default value is `true`.
+If `false`, smartcrop is deactivated. Default value is `true`.
 
 #### **onSmartCropDone**
 
