@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+
+<script src="../dist/dnm-smartcroppr.js"></script>
+<link rel="stylesheet" href="../dist/dnm-smartcroppr.css">
+
+<style>
+.imgContainer {
+    width:50%;
+    margin:auto;
+}
+
+.imgContainer img {
+    max-width: 100%;
+}
+    
+#cropPreview {
+    margin-top:30px;
+    margin-left:auto;
+    margin-right:auto;
+    width: 30%;
+    height: 300px;
+    background-color:black;
+}
+    
+</style>
+
+<body>
+    <h1>dnm-smartcroppr</h1>
+    <div>
+        <button class="setImage" data-img="test1.jpg">Image 1</button>
+        <button class="setImage" data-img="test2.jpg">Image 2</button>
+        <button class="setImage" data-img="test3.jpg">Image 3</button>
+    </div>
+    <div class="imgContainer">
+        <img src="test1.jpg" id="cropper">
+    </div>
+    <div id="cropPreview"></div>
+
+    <script src="index.js"></script>
+</body>
+</html>

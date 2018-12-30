@@ -1,0 +1,54 @@
+{
+  "name": "dnm-smartcroppr",
+  "version": "1.0.0",
+  "description": "Easy to use JS cropper based on dnm-croppr (fork of Croppr.js) with smartcrop features of smartcrop.js.",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rollup --config rollup.config.dev.js",
+    "dev": "onchange \"src/**/*.*\" -v -- npm run build",
+    "production": "rollup --config rollup.config.prod.js & cleancss dist/dnm-smartcroppr.css -o dist/dnm-smartcroppr.min.css",
+    "dist": "npm run build && npm run production"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devdanim/dnm-smartcroppr"
+  },
+  "author": "Adrien du Repaire",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/devdanim/dnm-smartcroppr/issues"
+  },
+  "homepage": "https://github.com/devdanim/dnm-smartcroppr#readme",
+  "keywords": [
+    "image",
+    "cropper",
+    "cropping",
+    "crop",
+    "javascript",
+    "js",
+    "vanilla",
+    "native",
+    "croppr",
+    "smartcrop",
+    "smartcrop.js"
+  ],
+  "devDependencies": {
+    "@babel/cli": "^7.2.3",
+    "@babel/core": "^7.2.2",
+    "@babel/preset-env": "^7.2.3",
+    "clean-css-cli": "^4.2.1",
+    "onchange": "^5.2.0",
+    "rollup": "^1.0.0",
+    "rollup-plugin-babel": "^4.2.0",
+    "rollup-plugin-cleanup": "^3.1.0",
+    "rollup-plugin-commonjs": "^9.2.0",
+    "rollup-plugin-node-resolve": "^4.0.0",
+    "rollup-plugin-postcss": "^1.6.3",
+    "rollup-plugin-terser": "^3.0.0"
+  },
+  "dependencies": {
+    "dnm-croppr": "^2.4.4",
+    "smartcrop": "^2.0.3"
+  }
+}
