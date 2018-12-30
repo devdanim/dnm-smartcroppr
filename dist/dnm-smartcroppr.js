@@ -1771,10 +1771,24 @@
   var smartcrop_1 = smartcrop.smartcrop;
 
   class SmartCroppr extends Croppr {
-    constructor(element, options, _deferred = false) {
-      super(element, options, _deferred = false);
-      if (options.smartcrop) {
-        this.setBestCrop(this.options, true, options.onSmartCropDone);
+    constructor(element, options) {
+      super(element, options, true);
+      let originalInit = null;
+      if (this.options.onInitialize) {
+        originalInit = this.options.onInitialize;
+      }
+      const init = () => {
+        if (originalInit) originalInit();
+        if (options.smartcrop) this.setBestCrop(options, true, options.onSmartCropDone);
+      };
+      this.options.onInitialize = init;
+      element = this.getElement(element);
+      if (element.width === 0 || element.height === 0) {
+        element.onload = () => {
+          this.initialize(element);
+        };
+      } else {
+        this.initialize(element);
       }
     }
     parseSmartOptions(options) {
@@ -1831,10 +1845,15 @@
         }
       };
       if (size) {
-        smartcrop.crop(this.imageEl, size).then(result => {
-          setSmartCrop(result.topCrop);
-          if (onSmartCropDone) onSmartCropDone(result.topCrop);
-        });
+        var img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = this.imageEl.src;
+        img.onload = function () {
+          smartcrop.crop(img, size).then(result => {
+            setSmartCrop(result.topCrop);
+            if (onSmartCropDone) onSmartCropDone(result.topCrop);
+          });
+        };
       } else setSmartCrop(null);
     }
     setImage(src, callback = null, smartcrop$$1 = true) {

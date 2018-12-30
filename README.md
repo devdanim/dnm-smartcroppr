@@ -82,15 +82,13 @@ Modify smartcrop. `cropData` has the same structure as smartcrop.js. If `crop` i
 
 ```javascript
 var cropData = {
-  x: 50, 
-  y: 30: 
-  width: 200, 
-  height: 300
-}
+  aspectRatio: 1,
+  maxAspectRatio: 2
+};
 var onSmartCropDone = function(data) {
   console.log(data.x, data.y, data.width, data.height);
-}
-setBestCrop(cropData, true, onSmartCropDone);
+};
+cropInstance.setBestCrop(cropData, true, onSmartCropDone);
 ```
 
 _Note: You can access the smart cropping informations with **cropperInstance.smartCropData**._
