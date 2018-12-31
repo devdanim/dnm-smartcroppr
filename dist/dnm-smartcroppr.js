@@ -690,6 +690,13 @@
       if (constrain === true) this.strictlyConstrain();
       this.box = box;
       this.redraw();
+      for (var i = 0; i < this.handles.length; i++) {
+        if (this.options.maxAspectRatio && (this.handles[i].position[0] == 0.5 || this.handles[i].position[1] == 0.5)) {
+          this.handles[i].el.style.display = "none";
+        } else {
+          this.handles[i].el.style.display = "block";
+        }
+      }
       return box;
     }
     getSourceSize() {
