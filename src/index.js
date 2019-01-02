@@ -12,8 +12,8 @@ class SmartCroppr extends Croppr {
       if(this.options.onInitialize) {
         originalInit = this.options.onInitialize
       }
-      const init = () => {
-        if(originalInit) originalInit()
+      const init = (instance) => {
+        if(originalInit) originalInit(instance)
         if(options.smartcrop) this.setBestCrop(options, true, options.onSmartCropDone)
       }
       this.options.onInitialize = init

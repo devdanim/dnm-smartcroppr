@@ -469,13 +469,14 @@
     initialize(element) {
       this.createDOM(element);
       this.getSourceSize();
-      this.convertOptionsToPixels();
       this.attachHandlerEvents();
       this.attachRegionEvents();
       this.attachOverlayEvents();
+      this.showModal("init");
       this.initializeBox(null, false);
       this.strictlyConstrain();
       this.redraw();
+      this.resetModal("init");
       this._initialized = true;
       if (this.options.onInitialize !== null) {
         this.options.onInitialize(this);
@@ -491,6 +492,12 @@
         deltaY = deltaY > maxDelta ? maxDelta : deltaY;
         deltaY = 1 + coeff * deltaY;
         this.scaleBy(deltaY);
+        if (this.options.onCropMove !== null) {
+          this.options.onCropMove(this.getValue());
+        }
+        if (this.options.onCropStart !== null) {
+          this.options.onCropStart(this.getValue());
+        }
       };
       if (this.options.responsive) {
         let onResize;
@@ -505,8 +512,9 @@
           newOptions.startPosition = [cropData.x, cropData.y, "%"];
           newOptions.startSize = [cropData.width, cropData.height, "%"];
           newOptions = this.parseOptions(newOptions);
-          newOptions = this.convertOptionsToPixels(newOptions);
+          this.showModal("onResize");
           this.initializeBox(newOptions);
+          this.resetModal("onResize");
         };
         window.onresize = function () {
           clearTimeout(onResize);
@@ -630,10 +638,11 @@
       this.imageEl.onload = () => {
         this.getSourceSize();
         this.options = this.parseOptions(this.initOptions);
-        this.convertOptionsToPixels();
+        this.showModal("setImage");
         this.initializeBox(null, false);
         this.strictlyConstrain();
         this.redraw();
+        this.resetModal("setImage");
         if (callback) callback();
       };
       this.imageEl.src = src;
@@ -654,6 +663,7 @@
      */
     initializeBox(opts = null, constrain = true) {
       if (opts === null) opts = this.options;
+      this.convertOptionsToPixels(opts);
       let boxWidth = opts.startSize.width;
       let boxHeight = opts.startSize.height;
       if (opts.minSize) {
@@ -699,6 +709,53 @@
       }
       return box;
     }
+    showModal(operationName = "default") {
+      let modalStyle = this.modalStyle;
+      if (modalStyle && modalStyle.modalIsDisplayed === true) {
+        return modalStyle;
+      }
+      if (this.options.modal) {
+        let {
+          modal
+        } = this.options;
+        let display = modal.currentStyle ? modal.currentStyle.display : getComputedStyle(modal, null).display;
+        let visibility = modal.currentStyle ? modal.currentStyle.visibility : getComputedStyle(modal, null).visibility;
+        modalStyle = {
+          operationName: operationName,
+          modalIsDisplayed: true,
+          display: display,
+          visibility: visibility
+        };
+        this.modalStyle = modalStyle;
+        if (display === "none") {
+          modal.style.visibility = "hidden";
+          modal.style.display = "block";
+        }
+      }
+      return modalStyle;
+    }
+    resetModal(oldOperationName = "default") {
+      let modalStyle = this.modalStyle;
+      if (modalStyle) {
+        let {
+          visibility,
+          display,
+          operationName,
+          modalIsDisplayed
+        } = modalStyle;
+        if (modalIsDisplayed && oldOperationName === operationName) {
+          let {
+            modal
+          } = this.options;
+          modal.style.visibility = visibility;
+          modal.style.display = display;
+          this.modalStyle = {
+            operationName: null,
+            modalIsDisplayed: false
+          };
+        }
+      }
+    }
     getSourceSize() {
       this.sourceSize = {};
       this.sourceSize.width = this.imageEl.naturalWidth;
@@ -707,10 +764,12 @@
     }
     convertor(data, inputMode, outputMode) {
       const convertRealDataToPixel = data => {
+        this.showModal();
         const {
           width,
           height
         } = this.imageEl.getBoundingClientRect();
+        this.resetModal();
         const factorX = this.sourceSize.width / width;
         const factorY = this.sourceSize.height / height;
         if (data.width) {
@@ -728,10 +787,12 @@
         return data;
       };
       const convertPercentToPixel = data => {
+        this.showModal();
         const {
           width,
           height
         } = this.imageEl.getBoundingClientRect();
+        this.resetModal();
         if (data.width) {
           data.width = data.width / 100 * width;
         }
@@ -1085,6 +1146,7 @@
       return cropData;
     }
     getValueAsRealData() {
+      this.showModal();
       const actualWidth = this.imageEl.naturalWidth;
       const actualHeight = this.imageEl.naturalHeight;
       const {
@@ -1093,6 +1155,7 @@
       } = this.imageEl.getBoundingClientRect();
       const factorX = actualWidth / elementWidth;
       const factorY = actualHeight / elementHeight;
+      this.resetModal();
       return {
         x: Math.round(this.box.x1 * factorX),
         y: Math.round(this.box.y1 * factorY),
@@ -1101,10 +1164,12 @@
       };
     }
     getValueAsRatio() {
+      this.showModal();
       const {
         width: elementWidth,
         height: elementHeight
       } = this.imageEl.getBoundingClientRect();
+      this.resetModal();
       return {
         x: this.box.x1 / elementWidth,
         y: this.box.y1 / elementHeight,
@@ -1142,10 +1207,13 @@
         onCropMove: null,
         onCropEnd: null,
         preview: null,
-        responsive: true
+        responsive: true,
+        modal: null
       };
       let preview = null;
       if (opts.preview !== null) preview = this.getElement(opts.preview);
+      let modal = null;
+      if (opts.modal !== null) modal = this.getElement(opts.modal);
       let responsive = null;
       if (opts.responsive !== null) responsive = opts.responsive;
       let aspectRatio = null;
@@ -1240,7 +1308,8 @@
         onCropMove: defaultValue(onCropMove, defaults.onCropMove),
         onCropEnd: defaultValue(onCropEnd, defaults.onCropEnd),
         preview: defaultValue(preview, defaults.preview),
-        responsive: defaultValue(responsive, defaults.responsive)
+        responsive: defaultValue(responsive, defaults.responsive),
+        modal: defaultValue(modal, defaults.modal)
       };
     }
   }
@@ -1277,6 +1346,7 @@
      * @param {Number} y
      */
     moveTo(x, y, constrain = true, mode = "px") {
+      this.showModal("moveTo");
       if (mode === "%" || mode === "real") {
         let data = this.convertor({
           x,
@@ -1288,6 +1358,7 @@
       this.box.move(x, y);
       if (constrain === true) this.strictlyConstrain(null, [0, 0]);
       this.redraw();
+      this.resetModal("moveTo");
       if (this.options.onCropEnd !== null) {
         this.options.onCropEnd(this.getValue());
       }
@@ -1301,6 +1372,7 @@
      *      Defaults to [0.5, 0.5] (center).
      */
     resizeTo(width, height, origin = null, constrain = true, mode = "px") {
+      this.showModal("resize");
       if (mode === "%" || mode === "real") {
         let data = {
           width: width,
@@ -1314,15 +1386,20 @@
       this.box.resize(width, height, origin);
       if (constrain === true) this.strictlyConstrain();
       this.redraw();
+      this.resetModal("resize");
       if (this.options.onCropEnd !== null) {
         this.options.onCropEnd(this.getValue());
       }
       return this;
     }
     setValue(data, constrain = true, mode = "%") {
-      if (mode === "%" || mode === "real") data = this.convertor(data, mode, "px");
+      this.showModal("setValue");
+      if (mode === "%" || mode === "real") {
+        data = this.convertor(data, mode, "px");
+      }
       this.moveTo(data.x, data.y, false);
       this.resizeTo(data.width, data.height, [0, 0], constrain);
+      this.resetModal("setValue");
       return this;
     }
     /**
@@ -1333,17 +1410,21 @@
      */
     scaleBy(factor, origin = null, constrain = true) {
       if (origin === null) origin = [.5, .5];
+      this.showModal("scaleBy");
       this.box.scale(factor, origin);
       if (constrain === true) this.strictlyConstrain();
       this.redraw();
+      this.resetModal("scaleBy");
       if (this.options.onCropEnd !== null) {
         this.options.onCropEnd(this.getValue());
       }
       return this;
     }
     reset() {
+      this.showModal("reset");
       this.box = this.initializeBox(this.options);
       this.redraw();
+      this.resetModal("reset");
       if (this.options.onCropEnd !== null) {
         this.options.onCropEnd(this.getValue());
       }
@@ -1784,8 +1865,8 @@
       if (this.options.onInitialize) {
         originalInit = this.options.onInitialize;
       }
-      const init = () => {
-        if (originalInit) originalInit();
+      const init = instance => {
+        if (originalInit) originalInit(instance);
         if (options.smartcrop) this.setBestCrop(options, true, options.onSmartCropDone);
       };
       this.options.onInitialize = init;

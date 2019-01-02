@@ -1,6 +1,6 @@
 {
   "name": "dnm-smartcroppr",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Easy to use JS cropper based on dnm-croppr (fork of Croppr.js) with smartcrop features of smartcrop.js.",
   "main": "src/index.js",
   "scripts": {
@@ -48,7 +48,7 @@
     "rollup-plugin-terser": "^3.0.0"
   },
   "dependencies": {
-    "dnm-croppr": "^2.4.4",
+    "dnm-croppr": "^2.4.7",
     "smartcrop": "^2.0.3"
   }
 }
