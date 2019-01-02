@@ -1,6 +1,6 @@
 {
   "name": "dnm-smartcroppr",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Easy to use JS cropper based on dnm-croppr (fork of Croppr.js) with smartcrop features of smartcrop.js.",
   "main": "src/index.js",
   "scripts": {

@@ -30,7 +30,6 @@
 }
 
 .croppr-region {
-  border: 1px dashed rgba(0, 0, 0, 0.5);
   position: absolute;
   z-index: 3;
   cursor: move;
@@ -49,6 +48,7 @@
 
 .croppr-handle {
   border: 1px solid black;
+  border-radius: 5px;
   background-color: white;
   width: 10px;
   height: 10px;
