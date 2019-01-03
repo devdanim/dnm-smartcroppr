@@ -4190,8 +4190,8 @@
           if (maxTotal > 0) {
             smartOptions.boost = [];
             event.data.map(function (face) {
-              let weight = 1.0;
-              {
+              let weight = face.total / maxTotal;
+              if (weight >= 0.05) {
                 smartOptions.boost.push({
                   x: face.x,
                   y: face.y,

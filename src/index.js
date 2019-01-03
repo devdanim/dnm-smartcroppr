@@ -224,8 +224,8 @@ class SmartCroppr extends Croppr {
         if(maxTotal > 0) {
           smartOptions.boost = []
           event.data.map(function(face) {
-            //let weight = face.total / maxTotal
-            let weight = 1.0
+            let weight = face.total / maxTotal
+            //let weight = 1.0
             if(weight >= 0.05) {
               smartOptions.boost.push({
                 x: face.x,
