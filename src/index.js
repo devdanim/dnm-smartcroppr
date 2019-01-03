@@ -2,9 +2,7 @@ import Croppr from 'dnm-croppr'
 import smartcrop from 'smartcrop'
 
 import tracking from './tracking/tracking';
-import './tracking/data/face-min.js';
-import './tracking/data/eye-min.js';
-
+import './tracking/data/face';
 
 class SmartCroppr extends Croppr {
 

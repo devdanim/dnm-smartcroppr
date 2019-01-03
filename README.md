@@ -1,4 +1,4 @@
-### Easy to use JS cropper based on dnm-croppr (fork of Croppr.js) with smartcrop features of smartcrop.js.
+### Easy to use JS cropper based on dnm-croppr (fork of Croppr.js) with smartcrop features of smartcrop.js and facial recognition of tracking.js.
 
 dnm-smartcroppr is compatible with all options and methods of dnm-croppr.
 
@@ -154,5 +154,5 @@ Changes the image src. Returns the Croppr instance. If `smartcrop` is set to **f
 
 - - -
 
-Thanks to original author of Croppr.js (James Ooi) and author of smartcrop.js (Jonas Wagner).
+Thanks to original author of Croppr.js (James Ooi), author of smartcrop.js (Jonas Wagner) and author of tracking.js (Eduardo Lundgren).
 Released under the MIT License.
