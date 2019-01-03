@@ -40,6 +40,24 @@ import SmartCroppr from 'dnm-smartcroppr';
 ```javascript
 var cropInstance = new SmartCroppr('#croppr', {
   // ...options
+  returnMode: "real",
+  responsive: true,
+  aspectRatio: 1,
+  preview: "#cropPreview",
+  smartcrop: true,
+  smartOptions: {
+      face: true,
+      minWidth: 500,
+      //minHeight will automatically be set to 500 because aspectRatio is 1
+      minHeight: 500,
+      onSmartCropDone: data => { 
+          console.log(data)
+      }
+  },
+  onInitialize: instance => { console.log(instance) },
+  onCropEnd: data => { console.log(data) },
+  onCropStart: (data) => { console.log(data) },
+  onCropMove: data => { console.log(data) }
 });
 ```
 
@@ -52,13 +70,44 @@ All options in **[dnm-croppr docs #Options →](https://github.com/devdanim/dnm-
 dnm-smartcroppr is optimized to work with ratios. Set **aspectRatio**, and optionally **maxAspectRatio** to find the best crop region for smartcrop.js.
 
 
-There is only two additional options for now :
+There is only these additional options for now :
 
 #### **smartcrop**
 
 If `false`, smartcrop is deactivated. Default value is `true`.
 
-#### **onSmartCropDone**
+#### **smartOptions**
+
+`Array` custom options for smartcrop. Default value is `null`. In this case, dnm-smartcroppr is able to define these different options with basic options of dnm-croppr.
+
+This is the different entries of smartOptions (all optionnal) :
+
+
+##### **face**
+
+If `true`, facial recognition is activated. Default is `false`.
+
+##### **minWidth**
+
+Minimum width for smartcrop. Crop width will not be inferior to this value. Default is `null`.
+
+##### **minHeight**
+
+Minimum height for smartcrop. Crop height will not be inferior to this value. Default is `null`.
+
+##### **minScale**
+
+Minimum scale for smartcrop. Default is `null`.
+
+_Note: If **minScale** is defined, **minWidth** and **minHeight** are ignored. If **minScale** is `null`, **minWidth** and / or **minHeight** will define **minScale** relatively to source image dimensions._
+
+_If **minWidth** is defined but **minHeight** is `null`, **minHeight** will be calculated with **aspectRatio**._
+
+##### **aspectRatio** and **maxAspectRatio** 
+
+If you don't want to constrain **aspectRatio** and / or **maxAspectRatio** of dnp-croppr, you can add ratios in **smartOptions**, to automatically width and height of the smart crop. Default are `null`.
+
+##### **onSmartCropDone**
 
 A callback function that is called when smartcrop is done. Default value is `null`.
 
@@ -70,33 +119,36 @@ onSmartCropDone: function(data) {
 
 
 
+
 ## Methods
 
 All methods in **[dnm-croppr docs #Methods →](https://github.com/devdanim/dnm-croppr#Methods)** are compatible with dnm-smartcroppr. 
 
-#### setBestCrop(cropData: Array, _crop?: boolean_, _onSmartCropDone?: function_)
+#### setBestCrop(smartOptions: Array, _crop?: boolean_)
 
-Modify smartcrop. `cropData` has the same structure as smartcrop.js. If `crop` is false, setBestCrop will only calculate the best crop without cropping the image.
+Modify smartcrop. `smartOptions` has the same structure as in the Options doc. If `crop` is false, setBestCrop() will only calculate the best crop without cropping the image.
 
-`onSmartCropDone` is equivalent to the callback function in options
 
 ```javascript
-var cropData = {
+var smartOptions = {
   aspectRatio: 1,
-  maxAspectRatio: 2
+  maxAspectRatio: 2,
+  face: true,
+  minScale: 0.5,
+  onSmartCropDone: data => {
+    console.log(data.x, data.y, data.width, data.height);
+  }
 };
-var onSmartCropDone = function(data) {
-  console.log(data.x, data.y, data.width, data.height);
-};
-cropInstance.setBestCrop(cropData, true, onSmartCropDone);
+
+cropInstance.setBestCrop(smartOptions, true);
 ```
 
 _Note: You can access the smart cropping informations with **cropperInstance.smartCropData**._
 
 
-#### setImage(src: string, _callback?: function_, _smartcrop?: boolean_)
+#### setImage(src: string, _callback?: function_, _smartcrop?: boolean_, _smartOptions?: Array_)
 
-Changes the image src. Returns the Croppr instance. If `onSmartCropDone` is set to **false**, crop region will not be recalculated. Default value is **true**.
+Changes the image src. Returns the Croppr instance. If `smartcrop` is set to **false**, crop region will not be recalculated. Default value is **true**.
 
 
 

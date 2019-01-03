@@ -1,11 +1,26 @@
+
+var start = new Date();
+
+var smartCropCallback = function(data) {
+    var end = new Date();
+    var seconds = (end - start) / 1000;
+    console.log("crop done in " + seconds + " seconds", data); 
+}
+
 var croppr = new SmartCroppr("#cropper", {
     returnMode: "real",
     responsive: true,
-    aspectRatio: 0.5,
-    maxAspectRatio: 1,
+    aspectRatio: 1,
     preview: "#cropPreview",
     smartcrop: true,
-    onSmartCropDone: smartCropData => { console.log(smartCropData) },
+    smartOptions: {
+        face: true,
+        minWidth: 500,
+        minHeight: 500,
+        onSmartCropDone: data => { 
+            smartCropCallback(data)
+        }
+    },
     onInitialize: instance => {},
     onCropEnd: data => {},
     onCropStart: (data) => {},
@@ -16,10 +31,18 @@ var setImageBtn = document.getElementsByClassName("setImage");
 
 for(var i=0; i < setImageBtn.length; i++) {
     setImageBtn[i].addEventListener("click", function() {
+        start = new Date();
         var callback = function() {
             console.log("New image loaded : " + src)
         };
         var src = this.getAttribute("data-img");
-        croppr.setImage(src, callback, true);
+        croppr.setImage(src, callback, true, {
+            face: true,
+            facePreResize: 768,
+            minScale: 0.5,
+            onSmartCropDone: data => { 
+                smartCropCallback(data)
+            }
+        });
     })
 }
