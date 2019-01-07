@@ -103,6 +103,11 @@ _Note: If **minScale** is defined, **minWidth** and **minHeight** are ignored. I
 
 _If **minWidth** is defined but **minHeight** is `null`, **minHeight** will be calculated with **aspectRatio**._
 
+##### **minScaleTreshold**
+
+When minScale is calculated with **minWidth** and **minHeight**, it can be very small. To avoid to crop big images too much, you can use **minScaleTreshold**, and **minScale** will be >= to **minScaleTreshold**. Default is `0.5`.
+
+
 ##### **aspectRatio** and **maxAspectRatio** 
 
 If you don't want to constrain **aspectRatio** and / or **maxAspectRatio** of dnp-croppr, you can add ratios in **smartOptions**, to automatically width and height of the smart crop. Default are `null`.

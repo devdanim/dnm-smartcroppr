@@ -4056,7 +4056,8 @@
         minHeight: null,
         aspectRatio: null,
         maxAspectRatio: null,
-        onSmartCropDone: null
+        onSmartCropDone: null,
+        minScaleTreshold: 0.5
       };
       this.smartOptions = {};
       for (var key in defaultSmartOptions) {
@@ -4089,7 +4090,8 @@
         maxRatio,
         minWidth,
         minHeight,
-        minScale
+        minScale,
+        minScaleTreshold
       } = this.smartOptions;
       if (this.debug) console.log("debug - Source Size : ", this.sourceSize);
       let imageRatio = width / height;
@@ -4102,6 +4104,8 @@
       } else {
         cropRatio = minRatio;
       }
+      let perfectRatio = false;
+      if (imageRatio === cropRatio) perfectRatio = true;
       let cropWidth = width;
       let cropHeight = cropWidth / cropRatio;
       if (cropHeight > height) {
@@ -4114,11 +4118,12 @@
         minScale = Math.min(minWidth / width, minHeight / height);
         minScale = minScale > 1 ? 1 : minScale;
       }
-      minScale = minScale !== null ? minScale > 0.5 ? minScale : 0.5 : 1.0;
+      minScale = minScale !== null ? minScale > minScaleTreshold ? minScale : minScaleTreshold : 1.0;
       return {
         width: cropWidth * minScale,
         height: cropHeight * minScale,
-        minScale: minScale
+        minScale: minScale,
+        perfectRatio: perfectRatio
       };
     }
     setBestCrop(smartOptions, crop = true) {
@@ -4128,6 +4133,7 @@
         smartOptions.minScale = size.minScale;
         smartOptions.width = size.width;
         smartOptions.height = size.height;
+        smartOptions.perfectRatio = size.perfectRatio;
         const scaleImage = (img, maxDimension, callback) => {
           var width = img.naturalWidth || img.width;
           var height = img.naturalHeight || img.height;
@@ -4177,13 +4183,23 @@
       };
       const smartCropFunc = (img, options) => {
         if (this.debug) console.log("debug - OPTIONS : ", options);
-        smartcrop.crop(img, options).then(result => {
-          if (this.debug) console.log("debug - RAW DATA : ", result.topCrop);
-          let smartCropData = convertValuesWithScale(result.topCrop, scale);
-          if (this.debug) console.log("debug - CONVERT DATA : ", smartCropData);
-          setSmartCrop(smartCropData);
-          if (options.onSmartCropDone) options.onSmartCropDone(smartCropData);
-        });
+        if (options.face && !options.boost) {
+          options.minScale = 1;
+        }
+        const cropCallback = data => {
+          setSmartCrop(data);
+          if (options.onSmartCropDone) options.onSmartCropDone(data);
+        };
+        if (options.minScale === 1 && options.perfectRatio) {
+          cropCallback(null);
+        } else {
+          smartcrop.crop(img, options).then(result => {
+            if (this.debug) console.log("debug - RAW DATA : ", result.topCrop);
+            let smartCropData = convertValuesWithScale(result.topCrop, scale);
+            if (this.debug) console.log("debug - CONVERT DATA : ", smartCropData);
+            cropCallback(smartCropData);
+          });
+        }
       };
       if (smartOptions.face) {
         var tracker = new tracking.ObjectTracker('face');
