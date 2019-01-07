@@ -9,6 +9,8 @@ class SmartCroppr extends Croppr {
   constructor(element, options) {
 
       super(element, options, true)
+
+      if(options.debug) this.debug = true
       
       let originalInit = null
       if(this.options.onInitialize) {
@@ -80,7 +82,7 @@ class SmartCroppr extends Croppr {
 
     let { width, height } = this.sourceSize
     let { minRatio, maxRatio, minWidth, minHeight, minScale } = this.smartOptions
-    //console.log("Source Size : ", this.sourceSize)
+    if(this.debug) console.log("debug - Source Size : ", this.sourceSize)
     let imageRatio = width/height
 
     if(!minRatio && minWidth && minHeight) {
@@ -146,13 +148,13 @@ class SmartCroppr extends Croppr {
           canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
           var result = document.createElement('img');
           result.onload = function() {
-            //console.log("IMAGE IS SCALED : ", scale)
             callback(result, scale);
           };
           result.src = canvas.toDataURL();
       }
       
       const scaleImageCallback = (new_img, scale) => {
+        if(this.debug) console.log("debug - IMAGE IS SCALED : ", scale)
         this.launchSmartCrop(new_img, smartOptions, scale, crop)
       }
 
@@ -199,11 +201,11 @@ class SmartCroppr extends Croppr {
     }
 
     const smartCropFunc = (img, options) => {
-      //console.log("OPTIONS : ", options)
+      if(this.debug) console.log("debug - OPTIONS : ", options)
       smartcrop.crop(img, options).then( result => {
-        //console.log("RAW DATA : ", result.topCrop)
+        if(this.debug) console.log("debug - RAW DATA : ", result.topCrop)
         let smartCropData = convertValuesWithScale(result.topCrop, scale)
-        //console.log("CONVERT DATA : ", smartCropData)
+        if(this.debug) console.log("debug - CONVERT DATA : ", smartCropData)
         setSmartCrop(smartCropData)
         if(options.onSmartCropDone) options.onSmartCropDone(smartCropData)
       });

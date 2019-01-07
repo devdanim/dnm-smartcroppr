@@ -13,6 +13,7 @@ var croppr = new SmartCroppr("#cropper", {
     aspectRatio: 1,
     preview: "#cropPreview",
     smartcrop: true,
+    debug: true,
     smartOptions: {
         face: true,
         minWidth: 500,
@@ -33,13 +34,15 @@ for(var i=0; i < setImageBtn.length; i++) {
     setImageBtn[i].addEventListener("click", function() {
         start = new Date();
         var callback = function() {
-            console.log("New image loaded : " + src)
+            //console.log("New image loaded : " + src)
         };
         var src = this.getAttribute("data-img");
         croppr.setImage(src, callback, true, {
             face: true,
             facePreResize: 768,
-            minScale: 0.5,
+            //minScale: 0.5,
+            minWidth: 500,
+            minHeight: 500,
             onSmartCropDone: data => { 
                 smartCropCallback(data)
             }

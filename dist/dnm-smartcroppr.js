@@ -4025,6 +4025,7 @@
   class SmartCroppr extends Croppr {
     constructor(element, options) {
       super(element, options, true);
+      if (options.debug) this.debug = true;
       let originalInit = null;
       if (this.options.onInitialize) {
         originalInit = this.options.onInitialize;
@@ -4090,6 +4091,7 @@
         minHeight,
         minScale
       } = this.smartOptions;
+      if (this.debug) console.log("debug - Source Size : ", this.sourceSize);
       let imageRatio = width / height;
       if (!minRatio && minWidth && minHeight) {
         minRatio = minWidth / minHeight;
@@ -4142,6 +4144,7 @@
           result.src = canvas.toDataURL();
         };
         const scaleImageCallback = (new_img, scale) => {
+          if (this.debug) console.log("debug - IMAGE IS SCALED : ", scale);
           this.launchSmartCrop(new_img, smartOptions, scale, crop);
         };
         var img = new Image();
@@ -4173,8 +4176,11 @@
         };
       };
       const smartCropFunc = (img, options) => {
+        if (this.debug) console.log("debug - OPTIONS : ", options);
         smartcrop.crop(img, options).then(result => {
+          if (this.debug) console.log("debug - RAW DATA : ", result.topCrop);
           let smartCropData = convertValuesWithScale(result.topCrop, scale);
+          if (this.debug) console.log("debug - CONVERT DATA : ", smartCropData);
           setSmartCrop(smartCropData);
           if (options.onSmartCropDone) options.onSmartCropDone(smartCropData);
         });
