@@ -10,12 +10,14 @@ var smartCropCallback = function(data) {
 var croppr = new SmartCroppr("#cropper", {
     returnMode: "real",
     responsive: true,
-    aspectRatio: 1,
+    //aspectRatio: 1,
+    //maxAspectRatio: 1.5,
     preview: "#cropPreview",
     smartcrop: true,
     debug: true,
     smartOptions: {
         face: true,
+        facePreResize: 768,
         minWidth: 500,
         minHeight: 500,
         onSmartCropDone: data => { 
@@ -23,8 +25,8 @@ var croppr = new SmartCroppr("#cropper", {
         }
     },
     onInitialize: instance => {},
-    onCropEnd: data => {},
-    onCropStart: (data) => {},
+    onCropEnd: data => { console.log("END:", data) },
+    onCropStart: data => {},
     onCropMove: data => {}
 });
 
@@ -34,12 +36,11 @@ for(var i=0; i < setImageBtn.length; i++) {
     setImageBtn[i].addEventListener("click", function() {
         start = new Date();
         var callback = function() {
-            //console.log("New image loaded : " + src)
+            croppr.resizeTo(100, 100, [0,0], true, "%");
         };
         var src = this.getAttribute("data-img");
         croppr.setImage(src, callback, true, {
             face: true,
-            facePreResize: 768,
             //minScale: 0.5,
             minWidth: 500,
             minHeight: 500,
