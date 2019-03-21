@@ -1,4 +1,4 @@
-### Easy to use JS cropper based on dnm-croppr (fork of Croppr.js) with smartcrop features of smartcrop.js and facial recognition of tracking.js.
+### Easy-to-use JS cropper based on dnm-croppr (fork of Croppr.js) with smartcrop features of smartcrop.js and facial recognition of tracking.js.
 
 dnm-smartcroppr is compatible with all options and methods of dnm-croppr.
 

@@ -10,8 +10,8 @@ var smartCropCallback = function(data) {
 var croppr = new SmartCroppr("#cropper", {
     returnMode: "real",
     responsive: true,
-    //aspectRatio: 1,
-    //maxAspectRatio: 1.5,
+    aspectRatio: 1,
+    maxAspectRatio: 1.5,
     preview: "#cropPreview",
     smartcrop: true,
     debug: true,
