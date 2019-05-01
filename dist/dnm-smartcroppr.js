@@ -4182,8 +4182,10 @@
           options.minScale = 1;
         }
         const cropCallback = data => {
+          if (this.debug) console.log("debug - CONVERT DATA : ", data);
           const cloned_data = JSON.parse(JSON.stringify(data));
           setSmartCrop(data);
+          if (this.debug) console.log("debug - DATA AFTER SETTIING SMARTCROP : ", cloned_data);
           if (options.onSmartCropDone) options.onSmartCropDone(cloned_data);
         };
         if (options.minScale === 1 && options.perfectRatio) {
@@ -4192,7 +4194,6 @@
           smartcrop.crop(img, options).then(result => {
             if (this.debug) console.log("debug - RAW DATA : ", result.topCrop);
             let smartCropData = convertValuesWithScale(result.topCrop, scale);
-            if (this.debug) console.log("debug - CONVERT DATA : ", smartCropData);
             cropCallback(smartCropData);
           });
         }
