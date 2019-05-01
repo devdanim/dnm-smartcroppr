@@ -4165,7 +4165,7 @@
         if (!data) data = null;
         this.smartCropData = null;
         if (data && crop === true) {
-          this.setValue(data, false, "real");
+          this.setValue(data, true, "real");
         }
       };
       const convertValuesWithScale = data => {
@@ -4182,8 +4182,9 @@
           options.minScale = 1;
         }
         const cropCallback = data => {
+          const cloned_data = JSON.parse(JSON.stringify(data));
           setSmartCrop(data);
-          if (options.onSmartCropDone) options.onSmartCropDone(data);
+          if (options.onSmartCropDone) options.onSmartCropDone(cloned_data);
         };
         if (options.minScale === 1 && options.perfectRatio) {
           cropCallback(null);
