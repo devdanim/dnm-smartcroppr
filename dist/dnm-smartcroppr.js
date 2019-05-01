@@ -501,27 +501,27 @@
       };
       if (this.options.responsive) {
         let onResize;
-        const resizeFunc = () => {
-          let newOptions = this.options;
-          let cropData = this.responsiveData;
-          const controlKeys = ["x", "y", "width", "height"];
-          for (var i = 0; i < controlKeys.length; i++) {
-            cropData[controlKeys[i]] = cropData[controlKeys[i]] > 1 ? 1 : cropData[controlKeys[i]] < 0 ? 0 : cropData[controlKeys[i]];
-          }
-          newOptions.startPosition = [cropData.x, cropData.y, "ratio"];
-          newOptions.startSize = [cropData.width, cropData.height, "ratio"];
-          newOptions = this.parseOptions(newOptions);
-          this.showModal("onResize");
-          this.initializeBox(newOptions);
-          this.resetModal("onResize");
-        };
-        window.onresize = function () {
+        window.onresize = () => {
           clearTimeout(onResize);
           onResize = setTimeout(() => {
-            resizeFunc();
+            this.forceRedraw();
           }, 100);
         };
       }
+    }
+    forceRedraw() {
+      let newOptions = this.options;
+      let cropData = this.responsiveData;
+      const controlKeys = ["x", "y", "width", "height"];
+      for (var i = 0; i < controlKeys.length; i++) {
+        cropData[controlKeys[i]] = cropData[controlKeys[i]] > 1 ? 1 : cropData[controlKeys[i]] < 0 ? 0 : cropData[controlKeys[i]];
+      }
+      newOptions.startPosition = [cropData.x, cropData.y, "ratio"];
+      newOptions.startSize = [cropData.width, cropData.height, "ratio"];
+      newOptions = this.parseOptions(newOptions);
+      this.showModal("onResize");
+      this.initializeBox(newOptions);
+      this.resetModal("onResize");
     }
     getElement(element, type) {
       if (element) {
