@@ -36,7 +36,7 @@ for(var i=0; i < setImageBtn.length; i++) {
     setImageBtn[i].addEventListener("click", function() {
         start = new Date();
         var callback = function() {
-            croppr.resizeTo(100, 100, [0,0], true, "%");
+            croppr.resizeTo(1, 1, [0,0], true, "ratio");
         };
         var src = this.getAttribute("data-img");
         croppr.setImage(src, callback, true, {

@@ -509,8 +509,8 @@
             cropData[controlKeys[i]] *= 100;
             cropData[controlKeys[i]] = cropData[controlKeys[i]] > 100 ? 100 : cropData[controlKeys[i]] < 0 ? 0 : cropData[controlKeys[i]];
           }
-          newOptions.startPosition = [cropData.x, cropData.y, "%"];
-          newOptions.startSize = [cropData.width, cropData.height, "%"];
+          newOptions.startPosition = [cropData.x, cropData.y, "ratio"];
+          newOptions.startSize = [cropData.width, cropData.height, "ratio"];
           newOptions = this.parseOptions(newOptions);
           this.showModal("onResize");
           this.initializeBox(newOptions);
@@ -643,6 +643,9 @@
         this.strictlyConstrain();
         this.redraw();
         this.resetModal("setImage");
+        if (this.options.onCropEnd !== null) {
+          this.options.onCropEnd(this.getValue());
+        }
         if (callback) callback();
       };
       this.imageEl.src = src;
@@ -794,22 +797,22 @@
         } = this.imageEl.getBoundingClientRect();
         this.resetModal();
         if (data.width) {
-          data.width = data.width / 100 * width;
+          data.width *= width;
         }
         if (data.x) {
-          data.x = data.x / 100 * width;
+          data.x *= width;
         }
         if (data.height) {
-          data.height = data.height / 100 * height;
+          data.height *= height;
         }
         if (data.y) {
-          data.y = data.y / 100 * height;
+          data.y *= height;
         }
         return data;
       };
-      if (inputMode === "real" && outputMode === "px") {
+      if (inputMode === "real" && outputMode === "raw") {
         return convertRealDataToPixel(data);
-      } else if (inputMode === "%" && outputMode === "px") {
+      } else if (inputMode === "ratio" && outputMode === "raw") {
         return convertPercentToPixel(data);
       }
       return null;
@@ -828,10 +831,10 @@
       for (let i = 0; i < sizeKeys.length; i++) {
         const key = sizeKeys[i];
         if (opts[key] !== null) {
-          if (opts[key].unit == '%') {
-            opts[key] = this.convertor(opts[key], "%", "px");
-          } else if (opts[key].real === true) {
-            opts[key] = this.convertor(opts[key], "real", "px");
+          if (opts[key].unit == 'ratio') {
+            opts[key] = this.convertor(opts[key], "ratio", "raw");
+          } else if (opts[key].unit === 'real') {
+            opts[key] = this.convertor(opts[key], "real", "raw");
           }
           delete opts[key].unit;
         }
@@ -1185,20 +1188,17 @@
         maxSize: {
           width: null,
           height: null,
-          unit: 'px',
-          real: false
+          unit: 'raw'
         },
         minSize: {
           width: null,
           height: null,
-          unit: 'px',
-          real: false
+          unit: 'raw'
         },
         startSize: {
-          width: 100,
-          height: 100,
-          unit: '%',
-          real: false
+          width: 1,
+          height: 1,
+          unit: 'ratio'
         },
         startPosition: null,
         returnMode: 'real',
@@ -1235,8 +1235,7 @@
         maxSize = {
           width: opts.maxSize[0] || null,
           height: opts.maxSize[1] || null,
-          unit: opts.maxSize[2] || 'px',
-          real: opts.minSize[3] || false
+          unit: opts.maxSize[2] || 'raw'
         };
       }
       let minSize = null;
@@ -1244,8 +1243,7 @@
         minSize = {
           width: opts.minSize[0] || null,
           height: opts.minSize[1] || null,
-          unit: opts.minSize[2] || 'px',
-          real: opts.minSize[3] || false
+          unit: opts.minSize[2] || 'raw'
         };
       }
       let startSize = null;
@@ -1253,8 +1251,7 @@
         startSize = {
           width: opts.startSize[0] || null,
           height: opts.startSize[1] || null,
-          unit: opts.startSize[2] || '%',
-          real: opts.startSize[3] || false
+          unit: opts.startSize[2] || 'ratio'
         };
       }
       let startPosition = null;
@@ -1262,8 +1259,7 @@
         startPosition = {
           x: opts.startPosition[0] || null,
           y: opts.startPosition[1] || null,
-          unit: opts.startPosition[2] || '%',
-          real: opts.startPosition[3] || false
+          unit: opts.startPosition[2] || 'ratio'
         };
       }
       let onInitialize = null;
@@ -1345,13 +1341,13 @@
      * @param {Number} x
      * @param {Number} y
      */
-    moveTo(x, y, constrain = true, mode = "px") {
+    moveTo(x, y, constrain = true, mode = "raw") {
       this.showModal("moveTo");
-      if (mode === "%" || mode === "real") {
+      if (mode === "ratio" || mode === "real") {
         let data = this.convertor({
           x,
           y
-        }, mode, "px");
+        }, mode, "raw");
         x = data.x;
         y = data.y;
       }
@@ -1371,14 +1367,14 @@
      * @param {Array} origin The origin point to resize from.
      *      Defaults to [0.5, 0.5] (center).
      */
-    resizeTo(width, height, origin = null, constrain = true, mode = "px") {
+    resizeTo(width, height, origin = null, constrain = true, mode = "raw") {
       this.showModal("resize");
-      if (mode === "%" || mode === "real") {
+      if (mode === "ratio" || mode === "real") {
         let data = {
           width: width,
           height: height
         };
-        data = this.convertor(data, mode, "px");
+        data = this.convertor(data, mode, "raw");
         width = data.width;
         height = data.height;
       }
@@ -1392,10 +1388,10 @@
       }
       return this;
     }
-    setValue(data, constrain = true, mode = "%") {
+    setValue(data, constrain = true, mode = "ratio") {
       this.showModal("setValue");
-      if (mode === "%" || mode === "real") {
-        data = this.convertor(data, mode, "px");
+      if (mode === "ratio" || mode === "real") {
+        data = this.convertor(data, mode, "raw");
       }
       this.moveTo(data.x, data.y, false);
       this.resizeTo(data.width, data.height, [0, 0], constrain);
@@ -1865,7 +1861,7 @@
    * @link http://trackingjs.com
    * @license BSD
    */
-  (function (window, undefined) {
+  (function (window, undefined$1) {
     window.tracking = window.tracking || {};
     /**
      * Inherit the prototype methods from one constructor into another.
@@ -4228,9 +4224,9 @@
         });
       } else smartCropFunc(img, smartOptions);
     }
-    setImage(src, callback = null, smartcrop$$1 = true, smartOptions = null) {
+    setImage(src, callback = null, smartcrop = true, smartOptions = null) {
       let smartCallback = callback;
-      if (smartcrop$$1 === true) {
+      if (smartcrop === true) {
         let options = this.options;
         options.smartOptions = smartOptions;
         this.parseSmartOptions(options);
