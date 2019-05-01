@@ -17,7 +17,7 @@ var croppr = new SmartCroppr("#cropper", {
     debug: true,
     smartOptions: {
         face: true,
-        facePreResize: 768,
+        preResize: 768,
         minWidth: 500,
         minHeight: 500,
         onSmartCropDone: data => { 

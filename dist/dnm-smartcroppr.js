@@ -4045,7 +4045,7 @@
     parseSmartOptions(options) {
       let defaultSmartOptions = {
         face: false,
-        facePreResize: 768,
+        preResize: 768,
         minScale: null,
         minWidth: null,
         minHeight: null,
@@ -4057,12 +4057,12 @@
       this.smartOptions = {};
       for (var key in defaultSmartOptions) {
         let defaultValue = defaultSmartOptions[key];
-        if (options.smartOptions && options.smartOptions[key]) {
+        if (options.smartOptions && typeof options.smartOptions[key] !== "undefined") {
           defaultValue = options.smartOptions[key];
         }
         this.smartOptions[key] = defaultValue;
       }
-      if (!this.smartOptions.face) this.smartOptions.facePreResize = null;
+      if (!options.preResize && this.smartOptions.face === false) this.smartOptions.preResize = 0;
       let tempMinRatio = options.aspectRatio ? options.aspectRatio : this.smartOptions.aspectRatio ? this.smartOptions.aspectRatio : null;
       let tempMaxRatio = options.maxAspectRatio ? options.maxAspectRatio : this.smartOptions.maxAspectRatio ? this.smartOptions.maxAspectRatio : null;
       let minRatio = tempMinRatio;
@@ -4122,13 +4122,16 @@
       };
     }
     setBestCrop(smartOptions, crop = true) {
-      const maxDimension = smartOptions.facePreResize;
-      let size = this.getSizeFromRatios();
-      if (size) {
-        smartOptions.minScale = size.minScale;
-        smartOptions.width = size.width;
-        smartOptions.height = size.height;
-        smartOptions.perfectRatio = size.perfectRatio;
+      const maxDimension = smartOptions.preResize;
+      const size = this.getSizeFromRatios();
+      smartOptions.minScale = size.minScale;
+      smartOptions.width = size.width;
+      smartOptions.height = size.height;
+      smartOptions.perfectRatio = size.perfectRatio;
+      if (!smartOptions.width || !smartOptions.height) {
+        smartOptions.skipSmartCrop = true;
+        this.launchSmartCrop(this.imageEl, smartOptions);
+      } else {
         const scaleImage = (img, maxDimension, callback) => {
           var width = img.naturalWidth || img.width;
           var height = img.naturalHeight || img.height;
@@ -4154,8 +4157,6 @@
         img.onload = function () {
           scaleImage(img, maxDimension, scaleImageCallback);
         };
-      } else {
-        setSmartCrop();
       }
     }
     launchSmartCrop(img, smartOptions, scale = 1.0, crop = true) {
@@ -4186,7 +4187,7 @@
           setSmartCrop(data);
           if (options.onSmartCropDone) options.onSmartCropDone(cloned_data);
         };
-        if (options.minScale === 1 && options.perfectRatio) {
+        if (options.skipSmartCrop || options.minScale === 1 && options.perfectRatio) {
           cropCallback(null);
         } else {
           smartcrop.crop(img, options).then(result => {
