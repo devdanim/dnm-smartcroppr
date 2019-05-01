@@ -1,6 +1,6 @@
 {
   "name": "dnm-smartcroppr",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Easy-to-use JS cropper based on dnm-croppr (fork of Croppr.js) with smartcrop features of smartcrop.js and facial recognition with tracking.js.",
   "main": "src/index.js",
   "scripts": {
@@ -41,7 +41,6 @@
     "@babel/core": "^7.4.4",
     "@babel/preset-env": "^7.4.4",
     "clean-css-cli": "^4.3.0",
-    "dnm-croppr": "^2.6.1",
     "onchange": "^5.2.0",
     "rollup": "^1.10.1",
     "rollup-plugin-babel": "^4.3.2",
@@ -49,7 +48,10 @@
     "rollup-plugin-commonjs": "^9.3.4",
     "rollup-plugin-node-resolve": "^4.2.3",
     "rollup-plugin-postcss": "^2.0.3",
-    "rollup-plugin-terser": "^3.0.0",
+    "rollup-plugin-terser": "^3.0.0"
+  },
+  "dependencies": {
+    "dnm-croppr": "^2.6.1",
     "smartcrop": "^2.0.3"
   }
 }
