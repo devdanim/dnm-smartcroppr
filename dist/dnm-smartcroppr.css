@@ -58,6 +58,10 @@
   top: 0;
 }
 
+.croppr-dark .croppr-image {
+  background-color: white;
+}
+
 .croppr-light .croppr-image, .croppr-light .croppr-imageClipped {
   background-color: black;
 }
