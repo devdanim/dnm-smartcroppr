@@ -51,7 +51,7 @@
     "rollup-plugin-terser": "^7.0.2"
   },
   "dependencies": {
-    "dnm-croppr": "^2.7.1",
+    "dnm-croppr": "^2.7.2",
     "smartcrop": "^2.0.3"
   }
 }
