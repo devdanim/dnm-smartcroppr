@@ -167,10 +167,10 @@ class SmartCroppr extends Croppr {
   
       var img = new Image()
       img.crossOrigin = 'anonymous'
+      img.src = this.imageEl.src 
       img.onload = function() {
         scaleImage(img, maxDimension, scaleImageCallback)
       }
-      img.src = this.imageEl.src 
     }
 
   }

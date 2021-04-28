@@ -4582,10 +4582,10 @@
         };
         var img = new Image();
         img.crossOrigin = 'anonymous';
+        img.src = this.imageEl.src;
         img.onload = function () {
           scaleImage(img, maxDimension, scaleImageCallback);
         };
-        img.src = this.imageEl.src;
       }
     }
     launchSmartCrop(img, smartOptions, scale = 1.0, crop = true) {
