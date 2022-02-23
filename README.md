@@ -1,4 +1,4 @@
-### Easy-to-use JS cropper based on dnm-croppr (fork of Croppr.js) with smartcrop features of smartcrop.js and facial recognition of tracking.js.
+### Easy-to-use JS cropper based on dnm-croppr (fork of Croppr.js) with smartcrop features of smartcrop.js.
 
 dnm-smartcroppr is compatible with all options and methods of dnm-croppr.
 
@@ -46,7 +46,6 @@ var cropInstance = new SmartCroppr('#croppr', {
   preview: "#cropPreview",
   smartcrop: true,
   smartOptions: {
-      face: true,
       minWidth: 500,
       //minHeight will automatically be set to 500 because aspectRatio is 1
       minHeight: 500,
@@ -82,10 +81,6 @@ If `false`, smartcrop is deactivated. Default value is `true`.
 
 This is the different entries of smartOptions (all optionnal) :
 
-
-##### **face**
-
-If `true`, facial recognition is activated. Default is `false`.
 
 ##### **minWidth**
 
@@ -138,7 +133,6 @@ Modify smartcrop. `smartOptions` has the same structure as in the Options doc. I
 var smartOptions = {
   aspectRatio: 1,
   maxAspectRatio: 2,
-  face: true,
   minScale: 0.5,
   onSmartCropDone: data => {
     console.log(data.x, data.y, data.width, data.height);
@@ -159,5 +153,5 @@ Changes the image src. Returns the Croppr instance. If `smartcrop` is set to **f
 
 - - -
 
-Thanks to original author of Croppr.js (James Ooi), author of smartcrop.js (Jonas Wagner) and author of tracking.js (Eduardo Lundgren).
+Thanks to original author of Croppr.js (James Ooi) and smartcrop.js (Jonas Wagner).
 Released under the MIT License.
