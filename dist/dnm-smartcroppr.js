@@ -1081,10 +1081,16 @@
       return this;
     }
     destroy() {
-      this._restore.parent.replaceChild(this._restore.element, this.containerEl);
-      if (this.options.preview) {
-        this.preview.image.parentNode.removeChild(this.preview.image);
-        this.preview.container.parentNode.removeChild(this.preview.container);
+      try {
+        if (this.containerEl) {
+          this._restore.parent.replaceChild(this._restore.element, this.containerEl);
+          if (this.options.preview) {
+            this.preview.image.parentNode.removeChild(this.preview.image);
+            this.preview.container.parentNode.removeChild(this.preview.container);
+          }
+        }
+      } catch (e) {
+        console.error(e);
       }
     }
     /**
