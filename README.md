@@ -53,7 +53,7 @@ var cropInstance = new SmartCroppr('#croppr', {
           console.log(data)
       }
   },
-  onInitialize: instance => { console.log(instance) },
+  onInitialize: (instance, mediaNode) => { console.log(instance, mediaNode) },
   onCropEnd: data => { console.log(data) },
   onCropStart: (data) => { console.log(data) },
   onCropMove: data => { console.log(data) }
@@ -147,7 +147,15 @@ _Note: You can access the smart cropping informations with **cropperInstance.sma
 
 #### setImage(src: string, _callback?: function_, _smartcrop?: boolean_, _smartOptions?: Array_)
 
-Changes the image src. Returns the Croppr instance. If `smartcrop` is set to **false**, crop region will not be recalculated. Default value is **true**.
+Changes the image src. Returns the Croppr instance and media node. If `smartcrop` is set to **false**, crop region will not be recalculated. Default value is **true**.
+
+#### setVideo(src: string, _callback?: function_, _smartcrop?: boolean_, _smartOptions?: Array_)
+
+Changes the video src. Returns the Croppr instance and media node. If `smartcrop` is set to **false**, crop region will not be recalculated. Default value is **true**.
+
+#### setMedia(src: string, _callback?: function_, _smartcrop?: boolean_, _smartOptions?: Array_, _mediaType?: string_)
+
+Changes the image or video src (depending on mediaType value). Returns the Croppr instance and media node. If `smartcrop` is set to **false**, crop region will not be recalculated. Default value is **true**.
 
 
 

@@ -6,31 +6,34 @@ class SmartCroppr extends Croppr {
   constructor(element, options) {
 
       super(element, options, true)
-
       if(options.debug) this.debug = true
+
+      element = this.getElement(element)
       
       let originalInit = null
       if(this.options.onInitialize) {
         originalInit = this.options.onInitialize
       }
-      const init = (instance) => {
-        if(originalInit) originalInit(instance)
+
+      const init = (instance, mediaNode) => {
+        if(originalInit) originalInit(instance, mediaNode)
         if(options.smartcrop) {
           this.parseSmartOptions(options)
           this.setBestCrop(this.smartOptions, true)
         }
       }
       this.options.onInitialize = init
-
-      element = this.getElement(element)
-      if (element.width === 0 || element.height === 0) {
-        element.onload = () => { 
-          this.initialize(element); 
+      const mediaType = element.nodeName.toLowerCase() === 'video' ? 'video' : 'image';
+      if (mediaType === 'image' && (element.width === 0 || element.height === 0)) {
+        element.onload = () => this.initialize(element);
+      } else if (mediaType === 'video' && (element.videoWidth === 0 || element.videoHeight === 0)) {
+        element.onloadeddata = () => {
+          this.initialize(element);
         }
       } else {
         this.initialize(element);
       }
-            
+
   }
 
   parseSmartOptions(options) {
@@ -76,10 +79,10 @@ class SmartCroppr extends Croppr {
   
   getSizeFromRatios() {
 
-    let { width, height } = this.sourceSize
+    let { width, height } = this.getSourceSize();
     let { minRatio, maxRatio, minWidth, minHeight, minScale, minScaleTreshold } = this.smartOptions
-    if(this.debug) console.log("debug - Source Size : ", this.sourceSize)
-    let imageRatio = width/height
+    if(this.debug) console.log("debug - Source Size : ", this.getSourceSize())
+    let imageRatio = width / height
 
     if(!minRatio && minWidth && minHeight) {
         minRatio = minWidth / minHeight
@@ -99,7 +102,7 @@ class SmartCroppr extends Croppr {
 
     //Define crop size
     let cropWidth = width
-    let cropHeight = cropWidth/cropRatio
+    let cropHeight = cropWidth / cropRatio
     if(cropHeight > height) {
       cropWidth = height * cropRatio
       cropHeight = height
@@ -134,30 +137,47 @@ class SmartCroppr extends Croppr {
 
     if(!smartOptions.width || !smartOptions.height) {
       smartOptions.skipSmartCrop = true;
-      this.launchSmartCrop(this.imageEl, smartOptions)
+      this.launchSmartCrop(this.mediaEl, smartOptions)
     } else {
       
-      const scaleImageCallback = (new_img, scale) => {
+      const scaleImageCallback = (newMedia, scale) => {
         if(this.debug) console.log("debug - IMAGE IS SCALED : ", scale)
-        this.launchSmartCrop(new_img, smartOptions, scale, crop)
+        this.launchSmartCrop(newMedia, smartOptions, scale, crop)
       }
+
+      const captureImageFromVideo = (video, callback) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        video.currentTime = Math.round(video.duration / 2);
+        video.addEventListener('seeked', () => {
+          canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);  
+          canvas.toBlob((blob) => {
+            const img = new Image();
+            img.onload = () => callback(img);
+            img.src = URL.createObjectURL(blob);
+          });
+        }, { once: true });
+      }
+
+      const media = document.createElement(this.mediaType === 'video' ? 'video' : 'img');
+      media.setAttribute('crossOrigin', 'anonymous');
+      media[this.mediaType === 'video' ? 'onloadeddata' : 'onload'] = () => {
+        if (this.mediaType === 'video') {
+          captureImageFromVideo(media, (img) => scaleImageCallback(img, 1));
+        } else scaleImageCallback(media, 1);
+      }
+      if (this.mediaType === 'video') media.setAttribute('muted', true);
+      media.setAttribute('src', this.mediaEl.src);
   
-      var img = new Image()
-      img.crossOrigin = 'anonymous'
-      img.onload = function() {
-        scaleImageCallback(img, 1);
-      }
-      img.src = this.imageEl.src 
     }
 
   }
 
   launchSmartCrop(img, smartOptions, scale = 1.0, crop = true) {
-
     //Scale smartOptions
     smartOptions.width *= scale
     smartOptions.height *= scale
-
 
     //Set crop callback when smartcrop return data
     const setSmartCrop = data => {
@@ -189,34 +209,42 @@ class SmartCroppr extends Croppr {
       if(options.skipSmartCrop || (options.minScale === 1 && options.perfectRatio) ) {
         cropCallback(null)
       } else {
-        smartcrop.crop(img, options).then( result => {
-          if(this.debug) console.log("debug - RAW DATA : ", result.topCrop)
+        smartcrop.crop(img, options).then(result => {
+          if(this.debug) console.log("debug - RAW DATA : ", result)
           let smartCropData = convertValuesWithScale(result.topCrop, scale)
           if(this.debug) console.log("debug - CONVERTED DATA : ", smartCropData)
           cropCallback(smartCropData)
+        }).catch(e => {
+          if (this.debug) console.error(e);
         });
       }
     }
 
     smartCropFunc(img, smartOptions);
-
   }
 
-  setImage(src, callback = null, smartcrop = true, smartOptions = null) {
-
+  setMedia(src, callback = null, smartcrop = true, smartOptions = null, mediaType = 'image') {
     let smartCallback = callback
     if(smartcrop === true) {
       let options = this.options
       options.smartOptions = smartOptions
       this.parseSmartOptions(options)
-      smartCallback = () => {
-        this.setBestCrop(this.smartOptions, true)
-        if(callback) callback()
+      smartCallback = (instance, mediaNode) => {
+        this.setBestCrop(this.smartOptions, true);
+        if(callback) callback(instance, mediaNode)
       }
     }
 
-    super.setImage(src, smartCallback)
+    super[mediaType === 'image' ? 'setImage' : 'setVideo'](src, smartCallback)
     return this
+  }
+
+  setImage(src, callback = null, smartcrop = true, smartOptions = null) {
+    return this.setMedia(src, callback, smartcrop, smartOptions, 'image');
+  }
+
+  setVideo(src, callback = null, smartcrop = true, smartOptions = null) {
+    return this.setMedia(src, callback, smartcrop, smartOptions, 'video');
   }
 
 }

@@ -16,7 +16,7 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
   typeof define === 'function' && define.amd ? define(factory) :
   (global = global || self, global.SmartCroppr = factory());
-}(this, function () { 'use strict';
+}(this, (function () { 'use strict';
 
   (function () {
     var lastTime = 0;
@@ -878,57 +878,58 @@
         this._restore.parentPreview = this.options.preview.parentNode;
       }
       if (!deferred) {
-        if (element.width === 0 || element.height === 0) {
-          element.onload = () => {
-            this.initialize(element);
-          };
+        const mediaType = element.nodeName.toLowerCase() === 'video' ? 'video' : 'image';
+        if (mediaType === 'image' && (element.width === 0 || element.height === 0)) {
+          element.onload = () => this.initialize(element);
+        } else if (mediaType === 'video' && (element.videoWidth === 0 || element.videoHeight === 0)) {
+          element.onloadeddata = () => this.initialize(element);
         } else {
           this.initialize(element);
         }
       }
     }
     initialize(element) {
-      this.createDOM(element);
-      this.getSourceSize();
-      this.attachHandlerEvents();
-      this.attachRegionEvents();
-      this.attachOverlayEvents();
-      this.showModal("init");
-      this.initializeBox(null, false);
-      this.strictlyConstrain();
-      this.redraw();
-      this.resetModal("init");
-      this._initialized = true;
-      if (this.options.onInitialize !== null) {
-        this.options.onInitialize(this);
-      }
-      this.cropperEl.onwheel = event => {
-        event.preventDefault();
-        let {
-          deltaY
-        } = event;
-        const maxDelta = 0.05;
-        let coeff = deltaY > 0 ? 1 : -1;
-        deltaY = Math.abs(deltaY) / 100;
-        deltaY = deltaY > maxDelta ? maxDelta : deltaY;
-        deltaY = 1 + coeff * deltaY;
-        this.scaleBy(deltaY);
-        if (this.options.onCropMove !== null) {
-          this.options.onCropMove(this.getValue());
+      this.createDOM(element, () => {
+        this.attachHandlerEvents();
+        this.attachRegionEvents();
+        this.attachOverlayEvents();
+        this.showModal("init");
+        this.initializeBox(null, false);
+        this.strictlyConstrain();
+        this.redraw();
+        this.resetModal("init");
+        this._initialized = true;
+        if (this.options.onInitialize !== null) {
+          this.options.onInitialize(this, this.mediaEl);
         }
-        if (this.options.onCropStart !== null) {
-          this.options.onCropStart(this.getValue());
-        }
-      };
-      if (this.options.responsive) {
-        let onResize;
-        window.onresize = () => {
-          clearTimeout(onResize);
-          onResize = setTimeout(() => {
-            this.forceRedraw();
-          }, 100);
+        this.cropperEl.onwheel = event => {
+          event.preventDefault();
+          let {
+            deltaY
+          } = event;
+          const maxDelta = 0.05;
+          let coeff = deltaY > 0 ? 1 : -1;
+          deltaY = Math.abs(deltaY) / 100;
+          deltaY = deltaY > maxDelta ? maxDelta : deltaY;
+          deltaY = 1 + coeff * deltaY;
+          this.scaleBy(deltaY);
+          if (this.options.onCropMove !== null) {
+            this.options.onCropMove(this.getValue());
+          }
+          if (this.options.onCropStart !== null) {
+            this.options.onCropStart(this.getValue());
+          }
         };
-      }
+        if (this.options.responsive) {
+          let onResize;
+          window.onresize = () => {
+            clearTimeout(onResize);
+            onResize = setTimeout(() => {
+              this.forceRedraw();
+            }, 100);
+          };
+        }
+      });
     }
     forceRedraw() {
       let newOptions = this.options;
@@ -955,19 +956,21 @@
       }
       return element;
     }
-    createDOM(targetEl) {
+    getMedia() {
+      return this.mediaEl;
+    }
+    createDOM(targetEl, onInit) {
       this.containerEl = document.createElement('div');
       this.containerEl.className = 'croppr-container';
       this.eventBus = this.containerEl;
       enableTouch(this.containerEl);
       this.cropperEl = document.createElement('div');
       this.cropperEl.className = 'croppr';
-      this.imageEl = document.createElement('img');
-      this.imageEl.setAttribute('crossOrigin', 'anonymous');
-      this.imageEl.setAttribute('alt', targetEl.getAttribute('alt'));
-      this.imageEl.onload = () => {
-        this.getSourceSize();
-        this.options = this.parseOptions(this.initOptions);
+      this.mediaType = targetEl.nodeName.toLowerCase() === 'video' ? 'video' : 'image';
+      this.mediaEl = document.createElement(this.mediaType === 'video' ? 'video' : 'img');
+      if (this.mediaType === 'video') ['muted', 'loop'].forEach(attr => this.mediaEl.setAttribute(attr, true));else this.mediaEl.setAttribute('alt', targetEl.getAttribute('alt'));
+      this.mediaEl.setAttribute('crossOrigin', 'anonymous');
+      this.mediaEl[this.mediaType === 'image' ? 'onload' : 'onloadeddata'] = () => {
         this.showModal("setImage");
         this.initializeBox(null, false);
         this.strictlyConstrain();
@@ -976,18 +979,21 @@
         if (this.options.onCropEnd !== null) {
           this.options.onCropEnd(this.getValue());
         }
-        const fac = new FastAverageColor();
-        const color = fac.getColor(this.imageEl);
-        if (color) {
-          this.isDark = color.isDark;
-          if (this.isDark) this.cropperEl.className = "croppr croppr-dark";else this.cropperEl.className = "croppr croppr-light";
-        }
-        if (this.onImageLoad) this.onImageLoad();
+        if (this.mediaType === 'image') {
+          const fac = new FastAverageColor();
+          const color = fac.getColor(this.mediaEl);
+          if (color) {
+            this.isDark = color.isDark;
+            if (this.isDark) this.cropperEl.className = "croppr croppr-dark";else this.cropperEl.className = "croppr croppr-light";
+          }
+        } else this.syncVideos();
+        if (this.onMediaLoad) this.onMediaLoad(this, this.mediaEl);
+        if (onInit) onInit();
       };
-      this.imageEl.setAttribute('src', targetEl.getAttribute('src'));
-      this.imageEl.className = 'croppr-image';
-      this.imageClippedEl = this.imageEl.cloneNode();
-      this.imageClippedEl.className = 'croppr-imageClipped';
+      this.mediaEl.setAttribute('src', targetEl.getAttribute('src'));
+      this.mediaEl.className = 'croppr-image';
+      this.mediaClippedEl = this.mediaEl.cloneNode();
+      this.mediaClippedEl.className = 'croppr-imageClipped';
       this.regionEl = document.createElement('div');
       this.regionEl.className = 'croppr-region';
       this.overlayEl = document.createElement('div');
@@ -1000,8 +1006,8 @@
         this.handles.push(handle);
         handleContainerEl.appendChild(handle.el);
       }
-      this.cropperEl.appendChild(this.imageEl);
-      this.cropperEl.appendChild(this.imageClippedEl);
+      this.cropperEl.appendChild(this.mediaEl);
+      this.cropperEl.appendChild(this.mediaClippedEl);
       this.cropperEl.appendChild(this.regionEl);
       this.cropperEl.appendChild(this.overlayEl);
       this.cropperEl.appendChild(handleContainerEl);
@@ -1009,13 +1015,76 @@
       targetEl.parentElement.replaceChild(this.containerEl, targetEl);
       this.setLivePreview();
     }
+    syncVideos() {
+      const videos = [this.mediaEl, this.mediaClippedEl];
+      this.videoRef = videos[0];
+      this.videosToSync = videos.filter(videoToSync => videoToSync !== this.videoRef);
+      const eventsToListen = ['play', 'pause', 'timeupdate', 'seeking'];
+      const videoRefEventsHandlers = eventsToListen.map(event => {
+        return () => {
+          if (event === "timeupdate") {
+            if (!this.videoRef || !this.videoRef.paused) {
+              return;
+            }
+            this.videosToSync.forEach(videoToSync => {
+              videoToSync.emit("timeupdate");
+            });
+          } else if (event === "seeking") {
+            this.videosToSync.forEach(videoToSync => {
+              videoToSync.currentTime = this.videoRef.currentTime;
+            });
+          } else if (event === "play" || event === "pause") {
+            this.videosToSync.forEach(videoToSync => {
+              videoToSync[event]();
+            });
+          }
+        };
+      });
+      const checkIfAllVideosAreReady = () => {
+        return videos.filter(video => video.readyState === 4).length === videos.length;
+      };
+      const attachHandlerEvents = () => {
+        videoRefEventsHandlers.forEach((evenHandler, eventIndex) => {
+          this.videoRef.addEventListener(eventsToListen[eventIndex], evenHandler);
+        });
+        this.stopVideosSyncing = () => {
+          this.videosToSync = [];
+          videoRefEventsHandlers.forEach((evenHandler, eventIndex) => {
+            this.videoRef.removeEventListener(eventsToListen[eventIndex], evenHandler);
+          });
+          this.videoRef = null;
+          this.stopVideosSyncing = null;
+        };
+        const autoPlay = () => {
+          if (this.videoRef && this.videoRef.paused) {
+            this.videoRef.muted = true;
+            this.videoRef.play();
+            setTimeout(() => autoPlay(), 1000);
+          }
+        };
+        autoPlay();
+      };
+      if (checkIfAllVideosAreReady()) attachHandlerEvents();else {
+        let handlersHaveBeenAttached = false;
+        videos.forEach(video => {
+          video.addEventListener('canplay', () => {
+            if (!handlersHaveBeenAttached && checkIfAllVideosAreReady()) {
+              handlersHaveBeenAttached = true;
+              attachHandlerEvents();
+            }
+          }, {
+            once: true
+          });
+        });
+      }
+    }
     setLivePreview() {
       if (this.options.preview) {
         this.preview = {};
         this.preview.parent = this.options.preview;
         this.preview.parent.style.position = "relative";
-        let new_container = document.createElement("div");
-        this.preview.container = this.preview.parent.appendChild(new_container);
+        const newContainer = document.createElement("div");
+        this.preview.container = this.preview.parent.appendChild(newContainer);
         this.preview.container.style.overflow = "hidden";
         this.preview.container.style.position = "absolute";
         this.preview.container.style.top = "50%";
@@ -1029,8 +1098,8 @@
         const targetWidth = this.preview.parent.offsetWidth;
         const targetHeight = this.preview.parent.offsetHeight;
         const targetRatio = targetWidth / targetHeight;
-        const cropWidth = this.sourceSize.width * cropData.width;
-        const cropHeight = this.sourceSize.height * cropData.height;
+        const cropWidth = this.getSourceSize().width * cropData.width;
+        const cropHeight = this.getSourceSize().height * cropData.height;
         const cropRatio = cropWidth / cropHeight;
         let containerWidth = targetWidth;
         let containerHeight = targetHeight;
@@ -1041,14 +1110,14 @@
         }
         this.preview.container.style.width = containerWidth + "px";
         this.preview.container.style.height = containerHeight + "px";
-        let resizeWidth = this.sourceSize.width * containerWidth / cropWidth;
-        let resizeHeight = this.sourceSize.height * containerHeight / cropHeight;
+        let resizeWidth = this.getSourceSize().width * containerWidth / cropWidth;
+        let resizeHeight = this.getSourceSize().height * containerHeight / cropHeight;
         let deltaX = -cropData.x * resizeWidth;
         let deltaY = -cropData.y * resizeHeight;
-        this.preview.image.style.width = resizeWidth + "px";
-        this.preview.image.style.height = resizeHeight + "px";
-        this.preview.image.style.left = deltaX + "px";
-        this.preview.image.style.top = deltaY + "px";
+        this.preview.media.style.width = resizeWidth + "px";
+        this.preview.media.style.height = resizeHeight + "px";
+        this.preview.media.style.left = deltaX + "px";
+        this.preview.media.style.top = deltaY + "px";
       }
     }
     strictlyConstrain(opts = null, origin = null) {
@@ -1063,7 +1132,7 @@
       const {
         width: parentWidth,
         height: parentHeight
-      } = this.imageEl.getBoundingClientRect();
+      } = this.mediaEl.getBoundingClientRect();
       this.box.constrainToRatio(opts.aspectRatio, origin, "height", opts.maxAspectRatio);
       this.box.constrainToSize(opts.maxSize.width, opts.maxSize.height, opts.minSize.width, opts.minSize.height, origin, opts.aspectRatio, opts.maxAspectRatio);
       origins.map(newOrigin => {
@@ -1075,17 +1144,49 @@
      * @param {String} src
      */
     setImage(src, callback) {
-      this.onImageLoad = callback;
-      this.imageEl.src = src;
-      this.imageClippedEl.src = src;
+      const oldMediaType = this.mediaType;
+      this.mediaType = 'image';
+      this.onMediaLoad = callback;
+      if (oldMediaType && oldMediaType !== 'image') {
+        this.destroy(true);
+        const newMedia = document.createElement('img');
+        newMedia.setAttribute('src', src);
+        this._restore.parent.appendChild(newMedia);
+        this.initialize(newMedia);
+      } else {
+        this.mediaEl.src = src;
+        this.mediaClippedEl.src = src;
+      }
       return this;
     }
-    destroy() {
+    /**
+     * Changes the video src.
+     * @param {String} src
+     */
+    setVideo(src, callback) {
+      const oldMediaType = this.mediaType;
+      this.mediaType = 'video';
+      this.onMediaLoad = callback;
+      if (oldMediaType && oldMediaType !== 'video') {
+        this.destroy(true);
+        const newMedia = document.createElement('video');
+        newMedia.setAttribute('src', src);
+        this._restore.parent.appendChild(newMedia);
+        this.initialize(newMedia);
+      } else {
+        if (this.stopVideosSyncing) this.stopVideosSyncing();
+        this.mediaEl.src = src;
+        this.mediaClippedEl.src = src;
+      }
+      return this;
+    }
+    destroy(doNotRestore) {
       try {
+        if (this.stopVideosSyncing) this.stopVideosSyncing();
         if (this.containerEl) {
-          this._restore.parent.replaceChild(this._restore.element, this.containerEl);
+          if (!doNotRestore) this._restore.parent.replaceChild(this._restore.element, this.containerEl);else this._restore.parent.removeChild(this.containerEl);
           if (this.options.preview) {
-            this.preview.image.parentNode.removeChild(this.preview.image);
+            this.preview.media.parentNode.removeChild(this.preview.media);
             this.preview.container.parentNode.removeChild(this.preview.container);
           }
         }
@@ -1116,7 +1217,7 @@
         const {
           width: parentWidth,
           height: parentHeight
-        } = this.imageEl.getBoundingClientRect();
+        } = this.mediaEl.getBoundingClientRect();
         x = parentWidth / 2 - boxWidth / 2;
         y = parentHeight / 2 - boxHeight / 2;
       } else {
@@ -1125,14 +1226,18 @@
       }
       box.move(x, y);
       if (this.preview) {
-        if (this.preview.image) {
-          this.preview.image.parentNode.removeChild(this.preview.image);
-          this.preview.image = null;
+        if (this.preview.media) {
+          this.preview.media.parentNode.removeChild(this.preview.media);
+          this.preview.media = null;
         }
-        let new_img = document.createElement("img");
-        new_img.src = this.imageEl.src;
-        this.preview.image = this.preview.container.appendChild(new_img);
-        this.preview.image.style.position = "relative";
+        let newMedia = document.createElement(this.mediaType === 'video' ? 'video' : 'img');
+        newMedia.src = this.mediaEl.src;
+        if (this.mediaType === 'video') {
+          ['muted', 'loop'].forEach(attr => newMedia.setAttribute(attr, true));
+          newMedia.setAttribute('crossOrigin', 'anonymous');
+        }
+        this.preview.media = this.preview.container.appendChild(newMedia);
+        this.preview.media.style.position = "relative";
       }
       if (constrain === true) this.strictlyConstrain();
       this.box = box;
@@ -1194,10 +1299,10 @@
       }
     }
     getSourceSize() {
-      this.sourceSize = {};
-      this.sourceSize.width = this.imageEl.naturalWidth;
-      this.sourceSize.height = this.imageEl.naturalHeight;
-      return this.sourceSize;
+      return {
+        width: this.mediaEl[this.mediaType === 'image' ? 'naturalWidth' : 'videoWidth'],
+        height: this.mediaEl[this.mediaType === 'image' ? 'naturalHeight' : 'videoHeight']
+      };
     }
     convertor(data, inputMode, outputMode) {
       const convertRealDataToPixel = data => {
@@ -1205,10 +1310,10 @@
         const {
           width,
           height
-        } = this.imageEl.getBoundingClientRect();
+        } = this.mediaEl.getBoundingClientRect();
         this.resetModal();
-        const factorX = this.sourceSize.width / width;
-        const factorY = this.sourceSize.height / height;
+        const factorX = this.getSourceSize().width / width;
+        const factorY = this.getSourceSize().height / height;
         if (data.width) {
           data.width /= factorX;
         }
@@ -1228,7 +1333,7 @@
         const {
           width,
           height
-        } = this.imageEl.getBoundingClientRect();
+        } = this.mediaEl.getBoundingClientRect();
         this.resetModal();
         if (data.width) {
           data.width *= width;
@@ -1260,7 +1365,7 @@
       const {
         width,
         height
-      } = this.imageEl.getBoundingClientRect();
+      } = this.mediaEl.getBoundingClientRect();
       const sizeKeys = ['maxSize', 'minSize', 'startSize', 'startPosition'];
       for (let i = 0; i < sizeKeys.length; i++) {
         const key = sizeKeys[i];
@@ -1298,12 +1403,12 @@
         this.regionEl.style.transform = `translate(${x1}px, ${y1}px)`;
         this.regionEl.style.width = width + 'px';
         this.regionEl.style.height = height + 'px';
-        this.imageClippedEl.style.clip = `rect(${y1}px, ${x2}px, ${y2}px, ${x1}px)`;
+        this.mediaClippedEl.style.clip = `rect(${y1}px, ${x2}px, ${y2}px, ${x1}px)`;
         const center = this.box.getAbsolutePoint([.5, .5]);
         const {
           width: parentWidth,
           height: parentHeight
-        } = this.imageEl.getBoundingClientRect();
+        } = this.mediaEl.getBoundingClientRect();
         const xSign = center[0] - parentWidth / 2 >> 31;
         const ySign = center[1] - parentHeight / 2 >> 31;
         const quadrant = (xSign ^ ySign) + ySign + ySign + 4;
@@ -1492,7 +1597,7 @@
       const {
         width: parentWidth,
         height: parentHeight
-      } = this.imageEl.getBoundingClientRect();
+      } = this.mediaEl.getBoundingClientRect();
       let boundaryOrigins = [origin];
       if (this.options.maxAspectRatio) boundaryOrigins = [[0, 0], [1, 1]];
       boundaryOrigins.map(boundaryOrigin => {
@@ -1584,12 +1689,14 @@
     }
     getValueAsRealData() {
       this.showModal();
-      const actualWidth = this.imageEl.naturalWidth;
-      const actualHeight = this.imageEl.naturalHeight;
+      const {
+        width: actualWidth,
+        height: actualHeight
+      } = this.getSourceSize();
       const {
         width: elementWidth,
         height: elementHeight
-      } = this.imageEl.getBoundingClientRect();
+      } = this.mediaEl.getBoundingClientRect();
       const factorX = actualWidth / elementWidth;
       const factorY = actualHeight / elementHeight;
       this.resetModal();
@@ -1605,7 +1712,7 @@
       const {
         width: elementWidth,
         height: elementHeight
-      } = this.imageEl.getBoundingClientRect();
+      } = this.mediaEl.getBoundingClientRect();
       this.resetModal();
       return {
         x: this.box.x1 / elementWidth,
@@ -1767,8 +1874,8 @@
     setImage(src, callback = null) {
       return super.setImage(src, callback);
     }
-    destroy() {
-      return super.destroy();
+    destroy(doNotRestore = false) {
+      return super.destroy(doNotRestore);
     }
     /**
      * Moves the crop region to a specified coordinate.
@@ -1869,9 +1976,10 @@
   var smartcrop = createCommonjsModule(function (module, exports) {
     (function () {
       var smartcrop = {};
-      smartcrop.Promise = typeof Promise !== 'undefined' ? Promise : function () {
+      function NoPromises() {
         throw new Error('No native promises and smartcrop.Promise not set.');
-      };
+      }
+      smartcrop.Promise = typeof Promise !== 'undefined' ? Promise : NoPromises;
       smartcrop.DEFAULTS = {
         width: 0,
         height: 0,
@@ -2272,13 +2380,13 @@
       }
       function saturation(r, g, b) {
         var maximum = max(r / 255, g / 255, b / 255);
-        var minumum = min(r / 255, g / 255, b / 255);
-        if (maximum === minumum) {
+        var minimum = min(r / 255, g / 255, b / 255);
+        if (maximum === minimum) {
           return 0;
         }
-        var l = (maximum + minumum) / 2;
-        var d = maximum - minumum;
-        return l > 0.5 ? d / (2 - maximum - minumum) : d / (maximum + minumum);
+        var l = (maximum + minimum) / 2;
+        var d = maximum - minimum;
+        return l > 0.5 ? d / (2 - maximum - minimum) : d / (maximum + minimum);
       }
       exports.smartcrop = smartcrop;
       {
@@ -2292,21 +2400,24 @@
     constructor(element, options) {
       super(element, options, true);
       if (options.debug) this.debug = true;
+      element = this.getElement(element);
       let originalInit = null;
       if (this.options.onInitialize) {
         originalInit = this.options.onInitialize;
       }
-      const init = instance => {
-        if (originalInit) originalInit(instance);
+      const init = (instance, mediaNode) => {
+        if (originalInit) originalInit(instance, mediaNode);
         if (options.smartcrop) {
           this.parseSmartOptions(options);
           this.setBestCrop(this.smartOptions, true);
         }
       };
       this.options.onInitialize = init;
-      element = this.getElement(element);
-      if (element.width === 0 || element.height === 0) {
-        element.onload = () => {
+      const mediaType = element.nodeName.toLowerCase() === 'video' ? 'video' : 'image';
+      if (mediaType === 'image' && (element.width === 0 || element.height === 0)) {
+        element.onload = () => this.initialize(element);
+      } else if (mediaType === 'video' && (element.videoWidth === 0 || element.videoHeight === 0)) {
+        element.onloadeddata = () => {
           this.initialize(element);
         };
       } else {
@@ -2347,7 +2458,7 @@
       let {
         width,
         height
-      } = this.sourceSize;
+      } = this.getSourceSize();
       let {
         minRatio,
         maxRatio,
@@ -2356,7 +2467,7 @@
         minScale,
         minScaleTreshold
       } = this.smartOptions;
-      if (this.debug) console.log("debug - Source Size : ", this.sourceSize);
+      if (this.debug) console.log("debug - Source Size : ", this.getSourceSize());
       let imageRatio = width / height;
       if (!minRatio && minWidth && minHeight) {
         minRatio = minWidth / minHeight;
@@ -2397,18 +2508,37 @@
       smartOptions.perfectRatio = size.perfectRatio;
       if (!smartOptions.width || !smartOptions.height) {
         smartOptions.skipSmartCrop = true;
-        this.launchSmartCrop(this.imageEl, smartOptions);
+        this.launchSmartCrop(this.mediaEl, smartOptions);
       } else {
-        const scaleImageCallback = (new_img, scale) => {
+        const scaleImageCallback = (newMedia, scale) => {
           if (this.debug) console.log("debug - IMAGE IS SCALED : ", scale);
-          this.launchSmartCrop(new_img, smartOptions, scale, crop);
+          this.launchSmartCrop(newMedia, smartOptions, scale, crop);
         };
-        var img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = function () {
-          scaleImageCallback(img, 1);
+        const captureImageFromVideo = (video, callback) => {
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          video.currentTime = Math.round(video.duration / 2);
+          video.addEventListener('seeked', () => {
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(blob => {
+              const img = new Image();
+              img.onload = () => callback(img);
+              img.src = URL.createObjectURL(blob);
+            });
+          }, {
+            once: true
+          });
         };
-        img.src = this.imageEl.src;
+        const media = document.createElement(this.mediaType === 'video' ? 'video' : 'img');
+        media.setAttribute('crossOrigin', 'anonymous');
+        media[this.mediaType === 'video' ? 'onloadeddata' : 'onload'] = () => {
+          if (this.mediaType === 'video') {
+            captureImageFromVideo(media, img => scaleImageCallback(img, 1));
+          } else scaleImageCallback(media, 1);
+        };
+        if (this.mediaType === 'video') media.setAttribute('muted', true);
+        media.setAttribute('src', this.mediaEl.src);
       }
     }
     launchSmartCrop(img, smartOptions, scale = 1.0, crop = true) {
@@ -2440,31 +2570,39 @@
           cropCallback(null);
         } else {
           smartcrop.crop(img, options).then(result => {
-            if (this.debug) console.log("debug - RAW DATA : ", result.topCrop);
-            let smartCropData = convertValuesWithScale(result.topCrop, scale);
+            if (this.debug) console.log("debug - RAW DATA : ", result);
+            let smartCropData = convertValuesWithScale(result.topCrop);
             if (this.debug) console.log("debug - CONVERTED DATA : ", smartCropData);
             cropCallback(smartCropData);
+          }).catch(e => {
+            if (this.debug) console.error(e);
           });
         }
       };
       smartCropFunc(img, smartOptions);
     }
-    setImage(src, callback = null, smartcrop = true, smartOptions = null) {
+    setMedia(src, callback = null, smartcrop = true, smartOptions = null, mediaType = 'image') {
       let smartCallback = callback;
       if (smartcrop === true) {
         let options = this.options;
         options.smartOptions = smartOptions;
         this.parseSmartOptions(options);
-        smartCallback = () => {
+        smartCallback = (instance, mediaNode) => {
           this.setBestCrop(this.smartOptions, true);
-          if (callback) callback();
+          if (callback) callback(instance, mediaNode);
         };
       }
-      super.setImage(src, smartCallback);
+      super[mediaType === 'image' ? 'setImage' : 'setVideo'](src, smartCallback);
       return this;
+    }
+    setImage(src, callback = null, smartcrop = true, smartOptions = null) {
+      return this.setMedia(src, callback, smartcrop, smartOptions, 'image');
+    }
+    setVideo(src, callback = null, smartcrop = true, smartOptions = null) {
+      return this.setMedia(src, callback, smartcrop, smartOptions, 'video');
     }
   }
 
   return SmartCroppr;
 
-}));
+})));

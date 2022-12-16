@@ -11,12 +11,12 @@ var croppr = new SmartCroppr("#cropper", {
     returnMode: "real",
     responsive: true,
     aspectRatio: 1,
-    maxAspectRatio: 1.5,
+    maxAspectRatio: 0.5,
     preview: "#cropPreview",
     smartcrop: true,
     debug: true,
     smartOptions: {
-        face: true,
+        face: false,
         preResize: 768,
         minWidth: 500,
         minHeight: 500,
@@ -24,7 +24,7 @@ var croppr = new SmartCroppr("#cropper", {
             smartCropCallback(data)
         }
     },
-    onInitialize: instance => {},
+    onInitialize: (instance, mediaNode) => console.log(instance, mediaNode),
     onCropEnd: data => { console.log("END:", data) },
     onCropStart: data => {},
     onCropMove: data => {}
@@ -35,16 +35,15 @@ var setImageBtn = document.getElementsByClassName("setImage");
 for(var i=0; i < setImageBtn.length; i++) {
     setImageBtn[i].addEventListener("click", function() {
         start = new Date();
-        var callback = function() {
-            croppr.resizeTo(1, 1, [0,0], true, "ratio");
-        };
         var src = this.getAttribute("data-img");
-        croppr.setImage(src, callback, true, {
-            face: true,
-            //minScale: 0.5,
+        var imgSrc = this.getAttribute("data-img");
+        var videoSrc = this.getAttribute("data-video");
+        croppr[imgSrc ? 'setImage' : 'setVideo'](imgSrc || videoSrc, (instance, mediaNode) => console.log(instance, mediaNode), true, {
+            face: false,
+            minScale: 1,
             minWidth: 500,
             minHeight: 500,
-            onSmartCropDone: data => { 
+            onSmartCropDone: data => {
                 smartCropCallback(data)
             }
         });
