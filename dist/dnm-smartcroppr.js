@@ -877,16 +877,7 @@
         this._restore.preview = this.options.preview;
         this._restore.parentPreview = this.options.preview.parentNode;
       }
-      if (!deferred) {
-        const mediaType = element.nodeName.toLowerCase() === 'video' ? 'video' : 'image';
-        if (mediaType === 'image' && (element.width === 0 || element.height === 0)) {
-          element.onload = () => this.initialize(element);
-        } else if (mediaType === 'video' && (element.videoWidth === 0 || element.videoHeight === 0)) {
-          element.onloadeddata = () => this.initialize(element);
-        } else {
-          this.initialize(element);
-        }
-      }
+      if (!deferred) this.initialize(element);
     }
     initialize(element) {
       this.createDOM(element, () => {
@@ -968,8 +959,26 @@
       this.cropperEl.className = 'croppr';
       this.mediaType = targetEl.nodeName.toLowerCase() === 'video' ? 'video' : 'image';
       this.mediaEl = document.createElement(this.mediaType === 'video' ? 'video' : 'img');
-      if (this.mediaType === 'video') ['muted', 'loop'].forEach(attr => this.mediaEl.setAttribute(attr, true));else this.mediaEl.setAttribute('alt', targetEl.getAttribute('alt'));
+      if (this.mediaType === 'video') ['loop', ...(this.options.muteVideo ? ['muted'] : [])].forEach(attr => this.mediaEl.setAttribute(attr, true));else this.mediaEl.setAttribute('alt', targetEl.getAttribute('alt'));
       this.mediaEl.setAttribute('crossOrigin', 'anonymous');
+      if (this.mediaType === 'video') {
+        this.mediaEl.onerror = event => {
+          const {
+            error
+          } = event.target;
+          if (error && error.code === 4) {
+            if (this.options.onNotSupportedVideoLoad) this.options.onNotSupportedVideoLoad(error.message);
+          }
+        };
+        this.mediaEl.onloadedmetadata = event => {
+          const {
+            videoHeight
+          } = event.target;
+          if (videoHeight === 0) {
+            if (this.options.onNotSupportedVideoLoad) this.options.onNotSupportedVideoLoad('Video format is not supported');
+          }
+        };
+      }
       this.mediaEl[this.mediaType === 'image' ? 'onload' : 'onloadeddata'] = () => {
         this.showModal("setImage");
         this.initializeBox(null, false);
@@ -1022,14 +1031,7 @@
       const eventsToListen = ['play', 'pause', 'timeupdate', 'seeking'];
       const videoRefEventsHandlers = eventsToListen.map(event => {
         return () => {
-          if (event === "timeupdate") {
-            if (!this.videoRef || !this.videoRef.paused) {
-              return;
-            }
-            this.videosToSync.forEach(videoToSync => {
-              videoToSync.emit("timeupdate");
-            });
-          } else if (event === "seeking") {
+          if (event === "seeking") {
             this.videosToSync.forEach(videoToSync => {
               videoToSync.currentTime = this.videoRef.currentTime;
             });
@@ -1047,6 +1049,19 @@
         videoRefEventsHandlers.forEach((evenHandler, eventIndex) => {
           this.videoRef.addEventListener(eventsToListen[eventIndex], evenHandler);
         });
+        const sync = () => {
+          this.videosToSync.forEach(videoToSync => {
+            if (videoToSync.readyState === 4) {
+              if (Math.abs(this.videoRef.currentTime - videoToSync.currentTime) > 0.1) {
+                videoToSync.currentTime = this.videoRef.currentTime;
+              }
+            }
+          });
+          if (this.videoRef && this.videosToSync.length) requestAnimationFrame(sync);
+        };
+        sync();
+        this.videosToSync.forEach(videoToSync => videoToSync.muted = true);
+        if (this.options.muteVideo) this.videoRef.muted = true;
         this.stopVideosSyncing = () => {
           this.videosToSync = [];
           videoRefEventsHandlers.forEach((evenHandler, eventIndex) => {
@@ -1056,8 +1071,7 @@
           this.stopVideosSyncing = null;
         };
         const autoPlay = () => {
-          if (this.videoRef && this.videoRef.paused) {
-            this.videoRef.muted = true;
+          if (this.options.autoPlayVideo && this.videoRef && this.videoRef.paused) {
             this.videoRef.play();
             setTimeout(() => autoPlay(), 1000);
           }
@@ -1233,7 +1247,7 @@
         let newMedia = document.createElement(this.mediaType === 'video' ? 'video' : 'img');
         newMedia.src = this.mediaEl.src;
         if (this.mediaType === 'video') {
-          ['muted', 'loop'].forEach(attr => newMedia.setAttribute(attr, true));
+          ['loop', 'muted'].forEach(attr => newMedia.setAttribute(attr, true));
           newMedia.setAttribute('crossOrigin', 'anonymous');
         }
         this.preview.media = this.preview.container.appendChild(newMedia);
@@ -1725,6 +1739,7 @@
       if (opts === null) opts = this.options;
       const defaults = {
         aspectRatio: null,
+        autoPlayVideo: false,
         maxAspectRatio: null,
         maxSize: {
           width: null,
@@ -1736,6 +1751,7 @@
           height: null,
           unit: 'raw'
         },
+        muteVideo: false,
         startSize: {
           width: 1,
           height: 1,
@@ -1747,6 +1763,7 @@
         onCropStart: null,
         onCropMove: null,
         onCropEnd: null,
+        onNotSupportedVideoLoad: null,
         preview: null,
         responsive: true,
         modal: null
@@ -1755,8 +1772,6 @@
       if (opts.preview !== null) preview = this.getElement(opts.preview);
       let modal = null;
       if (opts.modal !== null) modal = this.getElement(opts.modal);
-      let responsive = null;
-      if (opts.responsive !== null) responsive = opts.responsive;
       let aspectRatio = null;
       let maxAspectRatio = null;
       const ratioKeys = ["aspectRatio", "maxAspectRatio"];
@@ -1823,6 +1838,10 @@
       if (typeof opts.onCropMove === 'function') {
         onCropMove = opts.onCropMove;
       }
+      let onNotSupportedVideoLoad = null;
+      if (typeof opts.onNotSupportedVideoLoad === 'function') {
+        onNotSupportedVideoLoad = opts.onNotSupportedVideoLoad;
+      }
       let returnMode = null;
       if (opts.returnMode !== undefined) {
         const s = opts.returnMode.toLowerCase();
@@ -1834,9 +1853,11 @@
       const defaultValue = (v, d) => v !== null ? v : d;
       return {
         aspectRatio: defaultValue(aspectRatio, defaults.aspectRatio),
+        autoPlayVideo: defaultValue(opts.autoPlayVideo, defaults.autoPlayVideo),
         maxAspectRatio: defaultValue(maxAspectRatio, defaults.maxAspectRatio),
         maxSize: defaultValue(maxSize, defaults.maxSize),
         minSize: defaultValue(minSize, defaults.minSize),
+        muteVideo: defaultValue(opts.muteVideo, defaults.muteVideo),
         startSize: defaultValue(startSize, defaults.startSize),
         startPosition: defaultValue(startPosition, defaults.startPosition),
         returnMode: defaultValue(returnMode, defaults.returnMode),
@@ -1844,8 +1865,9 @@
         onCropStart: defaultValue(onCropStart, defaults.onCropStart),
         onCropMove: defaultValue(onCropMove, defaults.onCropMove),
         onCropEnd: defaultValue(onCropEnd, defaults.onCropEnd),
+        onNotSupportedVideoLoad: defaultValue(onNotSupportedVideoLoad, defaults.onNotSupportedVideoLoad),
         preview: defaultValue(preview, defaults.preview),
-        responsive: defaultValue(responsive, defaults.responsive),
+        responsive: defaultValue(opts.responsive, defaults.responsive),
         modal: defaultValue(modal, defaults.modal)
       };
     }
@@ -2413,16 +2435,7 @@
         }
       };
       this.options.onInitialize = init;
-      const mediaType = element.nodeName.toLowerCase() === 'video' ? 'video' : 'image';
-      if (mediaType === 'image' && (element.width === 0 || element.height === 0)) {
-        element.onload = () => this.initialize(element);
-      } else if (mediaType === 'video' && (element.videoWidth === 0 || element.videoHeight === 0)) {
-        element.onloadeddata = () => {
-          this.initialize(element);
-        };
-      } else {
-        this.initialize(element);
-      }
+      this.initialize(element);
     }
     parseSmartOptions(options) {
       let defaultSmartOptions = {

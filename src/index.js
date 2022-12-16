@@ -23,17 +23,8 @@ class SmartCroppr extends Croppr {
         }
       }
       this.options.onInitialize = init
-      const mediaType = element.nodeName.toLowerCase() === 'video' ? 'video' : 'image';
-      if (mediaType === 'image' && (element.width === 0 || element.height === 0)) {
-        element.onload = () => this.initialize(element);
-      } else if (mediaType === 'video' && (element.videoWidth === 0 || element.videoHeight === 0)) {
-        element.onloadeddata = () => {
-          this.initialize(element);
-        }
-      } else {
-        this.initialize(element);
-      }
 
+      this.initialize(element);
   }
 
   parseSmartOptions(options) {
