@@ -868,6 +868,7 @@
       if (!element.getAttribute('src')) {
         throw 'Image src not provided.';
       }
+      this._videoSyncIsRunning = false;
       this._initialized = false;
       this._restore = {
         parent: element.parentNode,
@@ -1028,7 +1029,7 @@
       const videos = [this.mediaEl, this.mediaClippedEl];
       this.videoRef = videos[0];
       this.videosToSync = videos.filter(videoToSync => videoToSync !== this.videoRef);
-      const eventsToListen = ['play', 'pause', 'timeupdate', 'seeking'];
+      const eventsToListen = ['play', 'pause', 'seeking'];
       const videoRefEventsHandlers = eventsToListen.map(event => {
         return () => {
           if (event === "seeking") {
@@ -1042,6 +1043,19 @@
           }
         };
       });
+      if (!this._videoSyncIsRunning) {
+        this._videoSyncIsRunning = true;
+        this.resyncVideosOnRequestAnimationFrame();
+      }
+      this.stopVideosSyncing = () => {
+        this.videosToSync = [];
+        this._videoSyncIsRunning = false;
+        videoRefEventsHandlers.forEach((evenHandler, eventIndex) => {
+          if (this.videoRef) this.videoRef.removeEventListener(eventsToListen[eventIndex], evenHandler);
+        });
+        this.videoRef = null;
+        this.stopVideosSyncing = null;
+      };
       const checkIfAllVideosAreReady = () => {
         return videos.filter(video => video.readyState === 4).length === videos.length;
       };
@@ -1049,27 +1063,8 @@
         videoRefEventsHandlers.forEach((evenHandler, eventIndex) => {
           this.videoRef.addEventListener(eventsToListen[eventIndex], evenHandler);
         });
-        const sync = () => {
-          this.videosToSync.forEach(videoToSync => {
-            if (videoToSync.readyState === 4) {
-              if (Math.abs(this.videoRef.currentTime - videoToSync.currentTime) > 0.1) {
-                videoToSync.currentTime = this.videoRef.currentTime;
-              }
-            }
-          });
-          if (this.videoRef && this.videosToSync.length) requestAnimationFrame(sync);
-        };
-        sync();
         this.videosToSync.forEach(videoToSync => videoToSync.muted = true);
         if (this.options.muteVideo) this.videoRef.muted = true;
-        this.stopVideosSyncing = () => {
-          this.videosToSync = [];
-          videoRefEventsHandlers.forEach((evenHandler, eventIndex) => {
-            this.videoRef.removeEventListener(eventsToListen[eventIndex], evenHandler);
-          });
-          this.videoRef = null;
-          this.stopVideosSyncing = null;
-        };
         const autoPlay = () => {
           if (this.options.autoPlayVideo && this.videoRef && this.videoRef.paused) {
             this.videoRef.play();
@@ -1091,6 +1086,18 @@
           });
         });
       }
+    }
+    resyncVideosOnRequestAnimationFrame() {
+      if (this.videoRef && this.videosToSync.length > 0) {
+        this.videosToSync.forEach(videoToSync => {
+          if (videoToSync.readyState === 4) {
+            if (Math.abs(this.videoRef.currentTime - videoToSync.currentTime) > 0.1) {
+              videoToSync.currentTime = this.videoRef.currentTime;
+            }
+          }
+        });
+      }
+      if (this._videoSyncIsRunning === true) requestAnimationFrame(this.resyncVideosOnRequestAnimationFrame.bind(this));
     }
     setLivePreview() {
       if (this.options.preview) {

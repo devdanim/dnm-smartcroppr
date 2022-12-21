@@ -1,6 +1,6 @@
 {
   "name": "dnm-smartcroppr",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Easy-to-use JS cropper based on dnm-croppr (fork of Croppr.js) with smartcrop features of smartcrop.js and facial recognition with tracking.js.",
   "main": "src/index.js",
   "scripts": {
@@ -51,7 +51,7 @@
     "rollup-plugin-terser": "^7.0.2"
   },
   "dependencies": {
-    "dnm-croppr": "^2.8.5",
+    "dnm-croppr": "^2.8.6",
     "smartcrop": "^2.0.5"
   }
 }
